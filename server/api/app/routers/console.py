@@ -8,7 +8,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Device, DeviceInventory, License, Notification, Plan, TelemetrySnapshot
+from ..models import Device, DeviceInventory, KbArticle, License, Notification, Plan, TelemetrySnapshot
 from ..schemas import (
     AgentInfo,
     DeviceDetailResponse,
@@ -677,17 +677,20 @@ def ui_dashboard(
 
 @router.get("/ui/activity-feed")
 def ui_activity_feed(
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     _user: dict = Depends(require_console_user),
 ):
+    fetch = limit + offset  # fetch enough to support the offset window
+
     events: list[tuple[datetime, dict]] = []
 
     telemetry_rows = db.execute(
         select(TelemetrySnapshot, Device.host_name)
         .join(Device, TelemetrySnapshot.device_id == Device.id)
         .order_by(TelemetrySnapshot.received_at.desc())
-        .limit(limit)
+        .limit(fetch)
     ).all()
     for snap, host_name in telemetry_rows:
         severity = _severity_for_telemetry(snap.category, snap.summary, snap.payload)
@@ -709,7 +712,7 @@ def ui_activity_feed(
         )
 
     license_rows = db.execute(
-        select(License).order_by(License.updated_at.desc()).limit(limit)
+        select(License).order_by(License.updated_at.desc()).limit(fetch)
     ).scalars().all()
     for lic in license_rows:
         stamp = lic.activated_at or lic.updated_at or lic.created_at
@@ -739,7 +742,7 @@ def ui_activity_feed(
         )
 
     device_rows = db.execute(
-        select(Device).order_by(Device.created_at.desc()).limit(limit)
+        select(Device).order_by(Device.created_at.desc()).limit(fetch)
     ).scalars().all()
     for device in device_rows:
         stamp = device.created_at or device.last_seen_at
@@ -763,8 +766,51 @@ def ui_activity_feed(
         )
 
     events.sort(key=lambda pair: pair[0], reverse=True)
-    items = [payload for _, payload in events[:limit]]
-    return {"items": items, "total": len(items)}
+    total = len(events)
+    items = [payload for _, payload in events[offset: offset + limit]]
+    return {"items": items, "total": total}
+
+
+@router.get("/ui/knowledge-base")
+def ui_knowledge_base(
+    search: str | None = Query(default=None, max_length=200),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_console_user),
+):
+    """Return published KB articles with optional full-text search on title/body."""
+    q = select(KbArticle).where(KbArticle.published == True)  # noqa: E712
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        q = q.where(
+            or_(
+                KbArticle.title.ilike(term),
+                KbArticle.body_md.ilike(term),
+            )
+        )
+
+    total: int = db.execute(
+        select(func.count()).select_from(q.subquery())
+    ).scalar_one()
+
+    rows = db.execute(
+        q.order_by(KbArticle.updated_at.desc()).limit(limit).offset(offset)
+    ).scalars().all()
+
+    items = [
+        {
+            "id": str(a.id),
+            "title": a.title,
+            "category": a.category,
+            "tags": a.tags if isinstance(a.tags, list) else [],
+            "updated_at": a.updated_at.isoformat(),
+            "summary": (a.body_md[:160].rstrip() + "…") if a.body_md else "",
+        }
+        for a in rows
+    ]
+    return {"items": items, "total": total}
 
 
 @router.get("/ui/audit-log")

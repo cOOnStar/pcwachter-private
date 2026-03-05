@@ -33,7 +33,13 @@
       "Bash(docker exec pcw-api python -c \"from app.main import app; routes = [r.path for r in app.routes]; print\\(''\\\\n''.join\\(r for r in routes if ''feature'' in r.lower\\(\\)\\)\\)\")",
       "Bash(bash server/deploy.sh api)",
       "Bash(curl -s http://localhost:18080/api/v1/console/ui/devices?limit=1 -H \"Authorization: Bearer test\")",
-      "Bash(docker exec pcw-postgres psql -U pcwaechter -d pcwaechter -c \":*)"
+      "Bash(docker exec pcw-postgres psql -U pcwaechter -d pcwaechter -c \":*)",
+      "Bash(docker build -t pcw-api:local \"c:/Users/Calvin/Documents/PCWächter/server/api\")",
+      "Bash(docker stop pcw-api)",
+      "Bash(docker rm pcw-api)",
+      "Bash(docker compose -f \"c:/Users/Calvin/Documents/PCWächter/server/infra/compose/docker-compose.yml\" --env-file \"c:/Users/Calvin/Documents/PCWächter/.env\" up -d api)",
+      "Bash(docker ps --filter \"name=pcw-api\" --format \"{{.Status}}\")",
+      "Bash(curl -s \"http://localhost:18080/api/v1/console/ui/knowledge-base?limit=3&offset=0\" -H \"Authorization: Bearer invalid\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",
