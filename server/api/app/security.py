@@ -77,17 +77,24 @@ def require_agent_register(
 
     Set AGENT_BOOTSTRAP_KEY + ALLOW_LEGACY_API_KEY_REGISTER=false once all agents migrated.
     """
-    # 1. Try bootstrap key (new, preferred)
     bootstrap_key = settings.AGENT_BOOTSTRAP_KEY.strip()
     supplied_bootstrap = (x_agent_bootstrap_key or "").strip()
-    if bootstrap_key and supplied_bootstrap and supplied_bootstrap == bootstrap_key:
-        return "bootstrap"
 
-    # 2. Legacy static API key (only when allowed by config toggle)
+    # Bootstrap-key configured: register MUST use bootstrap-key (no API-key fallback).
+    if bootstrap_key:
+        if supplied_bootstrap and supplied_bootstrap == bootstrap_key:
+            return "bootstrap"
+        raise HTTPException(status_code=401, detail="invalid register credentials")
+
+    # Bootstrap-key missing: either explicit legacy mode OR fail-fast (503).
     if settings.ALLOW_LEGACY_API_KEY_REGISTER:
         configured = _parse_keys(settings.API_KEYS) | _parse_keys(settings.AGENT_API_KEYS)
         supplied_key = (x_api_key or x_agent_api_key or "").strip()
         if supplied_key and supplied_key in configured:
             return f"apikey:{supplied_key}"
+        raise HTTPException(status_code=401, detail="invalid register credentials")
 
-    raise HTTPException(status_code=401, detail="invalid register credentials")
+    raise HTTPException(
+        status_code=503,
+        detail="agent_bootstrap_not_configured",
+    )

@@ -1,6 +1,6 @@
 COMPOSE = docker compose -f server/infra/compose/docker-compose.yml --env-file .env
 
-.PHONY: help up down build deploy logs ps migrate keycloak-setup
+.PHONY: help up down build deploy logs ps migrate db-init keycloak-setup
 
 # ── Hilfe ─────────────────────────────────────────────────────────────────────
 help:
@@ -20,6 +20,7 @@ help:
 	@echo "  make logs-home      Home Portal Logs"
 	@echo "  make ps             Container-Status"
 	@echo "  make migrate        Alembic-Migrationen ausführen"
+	@echo "  make db-init        Idempotent Greenfield-Init (bootstrap + alembic)"
 	@echo "  make keycloak-setup Keycloak Clients einrichten"
 	@echo ""
 
@@ -79,6 +80,9 @@ ps:
 # ── Migrationen ───────────────────────────────────────────────────────────────
 migrate:
 	docker exec pcw-api alembic upgrade head
+
+db-init:
+	$(COMPOSE) --profile db-init run --rm db-init
 
 migrate-history:
 	docker exec pcw-api alembic history

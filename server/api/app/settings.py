@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     # Agent Bootstrap-Key (replaces static API-key for /agent/register)
     # Set a long random secret here; agents supply it as X-Agent-Bootstrap-Key.
     AGENT_BOOTSTRAP_KEY: str = ""
-    # Set to false once all agents are migrated to bootstrap-key flow.
-    ALLOW_LEGACY_API_KEY_REGISTER: bool = True
+    # Legacy API-key register path (temporary migration toggle).
+    # Default is OFF; only set true while migrating old agents.
+    ALLOW_LEGACY_API_KEY_REGISTER: bool = False
 
     # Keycloak
     KEYCLOAK_URL: str = "https://login.xn--pcwchter-2za.de"
@@ -42,6 +43,7 @@ class Settings(BaseSettings):
     ZAMMAD_DEFAULT_ORG_ID: int = 0
     # Set to the Zammad role ID for "Customer". 0 = resolve dynamically via GET /api/v1/roles.
     ZAMMAD_CUSTOMER_ROLE_ID: int = 0
+    SUPPORT_ATTACHMENT_MAX_BYTES: int = 5 * 1024 * 1024
 
     # Storage
     EXPORT_DIR: str = "/data/exports"

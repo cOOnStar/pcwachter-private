@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import base64
 import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
+from pydantic import BaseModel, ConfigDict, Field
 
 # require_home_user : pcw_user | pcw_admin | pcw_console | pcw_support
 # require_console_owner: pcw_admin | owner | admin  (write/admin access)
@@ -197,6 +198,21 @@ class TicketCreateIn(BaseModel):
     body: str = Field(..., max_length=5000)
 
 
+class TicketAttachmentIn(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    filename: str = Field(..., min_length=1, max_length=255)
+    data: str = Field(..., min_length=1)
+    mime_type: str = Field(default="application/octet-stream", alias="mime-type", max_length=255)
+
+
+class TicketReplyIn(BaseModel):
+    body: str = Field(..., min_length=1, max_length=10000)
+    content_type: str = Field(default="text/plain", pattern="^(text/plain|text/html)$")
+    internal: bool = False
+    attachments: list[TicketAttachmentIn] = Field(default_factory=list)
+
+
 def _parse_int_query_param(name: str, value: str, minimum: int, maximum: int | None = None) -> int:
     try:
         parsed = int(value)
@@ -343,6 +359,88 @@ async def get_ticket(
                 raise HTTPException(status_code=404, detail="ticket_not_found")
 
     return ticket
+
+
+@router.post("/tickets/{ticket_id}/reply")
+async def reply_ticket(
+    ticket_id: int,
+    payload: TicketReplyIn,
+    _user: dict = Depends(require_home_user),
+) -> Any:
+    """Reply to a ticket via Zammad ticket_articles (supports optional attachments)."""
+    _require_zammad_configured()
+    elevated = _is_elevated(_user)
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        try:
+            detail = await client.get(
+                f"{settings.ZAMMAD_BASE_URL}/api/v1/tickets/{ticket_id}",
+                headers=_zammad_headers(),
+            )
+        except httpx.RequestError as exc:
+            _raise_zammad_upstream_unreachable("tickets(detail for reply)", exc)
+        if detail.status_code == 404:
+            raise HTTPException(status_code=404, detail="ticket_not_found")
+        if detail.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"zammad_error: {detail.status_code}")
+
+        ticket = detail.json()
+        if not elevated:
+            email = _extract_email(_user)
+            customer_id = await _find_zammad_user(email, client)
+            if customer_id is None:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+
+            ticket_customer_id = ticket.get("customer_id")
+            if ticket_customer_id is None or int(ticket_customer_id) != customer_id:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+
+        article_payload: dict[str, Any] = {
+            "ticket_id": ticket_id,
+            "body": payload.body,
+            "content_type": payload.content_type,
+            "type": "note",
+            "internal": bool(payload.internal),
+        }
+        if payload.attachments:
+            article_payload["attachments"] = [attachment.model_dump(by_alias=True) for attachment in payload.attachments]
+
+        try:
+            response = await client.post(
+                f"{settings.ZAMMAD_BASE_URL}/api/v1/ticket_articles",
+                headers=_zammad_headers(),
+                json=article_payload,
+            )
+        except httpx.RequestError as exc:
+            _raise_zammad_upstream_unreachable("ticket_articles(reply)", exc)
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"zammad_error: {response.status_code}")
+    return response.json()
+
+
+@router.post("/attachments")
+async def upload_attachment(
+    file: UploadFile = File(...),
+    _user: dict = Depends(require_home_user),
+) -> Dict[str, Any]:
+    """Upload helper: returns a base64 attachment object compatible with ticket_articles."""
+    max_size = max(1, int(settings.SUPPORT_ATTACHMENT_MAX_BYTES))
+    raw = await file.read(max_size + 1)
+    if len(raw) > max_size:
+        raise HTTPException(status_code=413, detail="attachment_too_large")
+    if not raw:
+        raise HTTPException(status_code=400, detail="empty_attachment")
+
+    filename = (file.filename or "attachment.bin").strip() or "attachment.bin"
+    mime_type = (file.content_type or "application/octet-stream").strip() or "application/octet-stream"
+
+    return {
+        "filename": filename,
+        "data": base64.b64encode(raw).decode("ascii"),
+        "mime-type": mime_type,
+        "size": len(raw),
+    }
 
 
 # ---------------------------------------------------------------------------

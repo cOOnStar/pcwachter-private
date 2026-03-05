@@ -90,6 +90,23 @@ services:
   # -------------------------
   # FastAPI Backend
   # -------------------------
+  db-init:
+    profiles: [db-init]
+    image: ${PCW_API_IMAGE:-pcw-api:local}
+    build:
+      context: ../../api
+      dockerfile: Dockerfile
+    container_name: pcw-db-init
+    restart: "no"
+    command: ["python", "scripts/db_init.py"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pcwaechter}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pcwaechter}
+    networks:
+      - pcw-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     image: ${PCW_API_IMAGE:-pcw-api:local}
     build:
@@ -102,6 +119,8 @@ services:
       ONLINE_THRESHOLD_SECONDS: "90"
       API_KEYS: ${API_KEYS:-}
       AGENT_API_KEYS: ${AGENT_API_KEYS:-}
+      AGENT_BOOTSTRAP_KEY: ${AGENT_BOOTSTRAP_KEY:-}
+      ALLOW_LEGACY_API_KEY_REGISTER: ${ALLOW_LEGACY_API_KEY_REGISTER:-false}
       KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-pcwaechter-prod}
       KEYCLOAK_ADMIN_USER: ${KC_ADMIN_USER:-admin}
@@ -113,6 +132,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://console.xn--pcwchter-2za.de,https://home.xn--pcwchter-2za.de}
       ZAMMAD_BASE_URL: ${ZAMMAD_BASE_URL:-}
       ZAMMAD_API_TOKEN: ${ZAMMAD_API_TOKEN:-}
+      SUPPORT_ATTACHMENT_MAX_BYTES: ${SUPPORT_ATTACHMENT_MAX_BYTES:-5242880}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}

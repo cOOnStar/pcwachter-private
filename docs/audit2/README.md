@@ -2,7 +2,7 @@
 
 ## Kurzbeschreibung
 - Scope: serverseitiger IST-Stand für `api`, `postgres`, `keycloak/login`, `console`, `home`, optional `zammad`, plus Release/Update „Variante A“.
-- Repo-Revision: `c698495155f83f7f4b127159ed865c6b772b6634`.
+- Repo-Revision: `0cebb53babe702bcf5bf8e19242ed0d9371eebab`.
 - Audit-Datum: `2026-03-05`.
 - Basisregel: Aussagen wurden nur aus Repository-Inhalten abgeleitet; fehlende/unklare Punkte sind als `unknown` markiert.
 - Commit-Nachweis: Command `git rev-parse HEAD`.

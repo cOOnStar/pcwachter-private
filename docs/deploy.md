@@ -33,8 +33,13 @@ docker compose --env-file .env up -d
 ## 4) Keycloak: Realm/Clients anlegen
 Siehe `docs/keycloak-setup.md`.
 
-## 5) Backend DB Migrations
-Im API-Container (abhängig vom Image):
+## 5) Backend DB Init + Migrations
+Empfohlen (idempotent, auch für Greenfield):
+```bash
+make db-init
+```
+
+Alternative manuell im API-Container (abhängig vom Image):
 ```bash
 docker exec -it pcw-api alembic upgrade head
 ```

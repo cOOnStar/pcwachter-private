@@ -27,21 +27,34 @@ jobs:
       - name: Checkout monorepo
         uses: actions/checkout@v4
 
-      # ── Build offline installer ──────────────────────────────────────────
-      # TODO: Pfad anpassen sobald Inno/NSIS Setup konfiguriert ist.
-      # Beispiel (Inno Setup):
-      # - name: Build Offline Installer
-      #   shell: pwsh
-      #   run: |
-      #     & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" client/installer/inno/setup.iss
-      #     Copy-Item client/installer/artifacts/PCWaechter_Setup.exe $env:OFFLINE_NAME
-      - name: Placeholder offline installer (ERSETZEN)
+      # ── Build offline installer (Inno Setup) ────────────────────────────
+      - name: Build Offline Installer
         shell: pwsh
         run: |
-          if (-not (Test-Path $env:OFFLINE_NAME)) {
-            Write-Error "Offline installer nicht gefunden: $env:OFFLINE_NAME. Bitte Build-Step ergänzen."
+          dotnet publish client/gui/PCWachter.Desktop.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -o artifacts/offline/publish
+
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "Inno Setup Compiler nicht gefunden: $iscc"
             exit 1
           }
+
+          $publishDir = (Resolve-Path artifacts/offline/publish).Path
+          & $iscc "client/installer/inno/PCWaechterSetup.iss" `
+            "/DMyAppVersion=${{ inputs.version }}" `
+            "/DPublishDir=$publishDir"
+
+          $builtOffline = "client/release/artifacts/PCWaechter_offline_installer.exe"
+          if (-not (Test-Path $builtOffline)) {
+            Write-Error "Offline installer build output nicht gefunden: $builtOffline"
+            exit 1
+          }
+          Copy-Item $builtOffline $env:OFFLINE_NAME -Force
 
       # ── Build live installer (bootstrapper) ─────────────────────────────
       - name: Build Live Installer (bootstrapper)

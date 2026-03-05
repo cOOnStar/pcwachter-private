@@ -18,6 +18,7 @@ from .routers.client import router as client_router
 from .routers.console import router as console_router
 from .routers.features import router as features_router
 from .routers.license import router as license_router
+from .routers.notifications import router as notifications_router
 from .routers.payments import router as payments_router
 from .routers.support import router as support_router
 from .routers.telemetry import router as telemetry_router
@@ -208,6 +209,7 @@ _v1.include_router(admin_router)
 _v1.include_router(license_router)
 _v1.include_router(payments_router)
 _v1.include_router(support_router)
+_v1.include_router(notifications_router)
 app.include_router(_v1)
 
 # ---------------------------------------------------------------------------
@@ -222,3 +224,4 @@ app.include_router(admin_router)
 app.include_router(license_router)
 app.include_router(payments_router)
 app.include_router(support_router)
+app.include_router(notifications_router)

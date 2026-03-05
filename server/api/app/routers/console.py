@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import uuid
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,7 +8,7 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Device, DeviceInventory, License, Plan, TelemetrySnapshot
+from ..models import Device, DeviceInventory, License, Notification, Plan, TelemetrySnapshot
 from ..schemas import (
     AgentInfo,
     DeviceDetailResponse,
@@ -1217,7 +1218,11 @@ def ui_notifications(
     db: Session = Depends(get_db),
     _user: dict = Depends(require_console_user),
 ):
-    notifications: list[dict] = []
+    user_id = str(_user.get("sub") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="user_sub_missing")
+
+    generated: list[dict] = []
     now = utcnow()
 
     # Kritische + Warning Telemetrie der letzten 24h
@@ -1232,7 +1237,7 @@ def ui_notifications(
     for snap, hostname in tele_rows:
         severity = _severity_for_telemetry(snap.category, snap.summary, snap.payload)
         if severity in ("critical", "warning"):
-            notifications.append({
+            generated.append({
                 "id": f"telemetry:{snap.id}",
                 "type": "telemetry",
                 "severity": severity,
@@ -1254,7 +1259,7 @@ def ui_notifications(
     ).scalars().all()
     for lic in expiring:
         days_left = max(0, (lic.expires_at - now).days)
-        notifications.append({
+        generated.append({
             "id": f"license:expiring:{lic.id}",
             "type": "license",
             "severity": "warning",
@@ -1270,7 +1275,7 @@ def ui_notifications(
     ).scalars().all()
     for lic in expired:
         stamp = lic.expires_at or lic.updated_at or now
-        notifications.append({
+        generated.append({
             "id": f"license:expired:{lic.id}",
             "type": "license",
             "severity": "critical",
@@ -1291,7 +1296,7 @@ def ui_notifications(
         ).order_by(Device.last_seen_at.desc()).limit(20)
     ).scalars().all()
     for device in offline_devices:
-        notifications.append({
+        generated.append({
             "id": f"device:offline:{device.id}",
             "type": "device",
             "severity": "warning",
@@ -1301,17 +1306,82 @@ def ui_notifications(
             "read": False,
         })
 
-    notifications.sort(key=lambda x: x["timestamp"], reverse=True)
-    items = notifications[:limit]
-    return {"items": items, "total": len(notifications)}
+    generated.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    # Persist generated notifications (idempotent by user_id + external_id in meta).
+    created_any = False
+    for item in generated:
+        external_id = str(item["id"])
+        existing = db.execute(
+            select(Notification).where(
+                Notification.user_id == user_id,
+                Notification.meta["external_id"].astext == external_id,
+            )
+        ).scalar_one_or_none()
+        if existing is None:
+            db.add(
+                Notification(
+                    user_id=user_id,
+                    type=str(item["type"]),
+                    title=str(item["title"]),
+                    body=str(item["message"]),
+                    meta={
+                        "severity": str(item.get("severity") or "info"),
+                        "external_id": external_id,
+                    },
+                )
+            )
+            created_any = True
+    if created_any:
+        db.commit()
+
+    total = db.execute(
+        select(func.count()).select_from(Notification).where(Notification.user_id == user_id)
+    ).scalar_one()
+    rows = db.execute(
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .order_by(Notification.created_at.desc())
+        .limit(limit)
+    ).scalars().all()
+
+    items = [
+        {
+            "id": str(row.id),
+            "type": row.type,
+            "severity": (row.meta or {}).get("severity", "info"),
+            "title": row.title,
+            "message": row.body,
+            "timestamp": row.created_at.isoformat() if row.created_at else None,
+            "read": row.read_at is not None,
+        }
+        for row in rows
+    ]
+    return {"items": items, "total": int(total)}
 
 
 @router.post("/ui/notifications/{notification_id}/read")
 def ui_notification_mark_read(
     notification_id: str,
+    db: Session = Depends(get_db),
     _user: dict = Depends(require_console_user),
 ):
-    """Stub – Notifications are generated in-memory; mark-read is a no-op."""
+    user_id = str(_user.get("sub") or "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="user_sub_missing")
+
+    try:
+        notif_uuid = uuid.UUID(notification_id.strip())
+    except ValueError:
+        return {"ok": True, "id": notification_id}
+
+    row = db.execute(
+        select(Notification).where(Notification.id == notif_uuid, Notification.user_id == user_id)
+    ).scalar_one_or_none()
+    if row and row.read_at is None:
+        row.read_at = utcnow()
+        db.commit()
+
     return {"ok": True, "id": notification_id}
 
 

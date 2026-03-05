@@ -10,18 +10,18 @@
 - Workflow vorhanden: `.github/workflows/publish_release.yml`.
 - Zielrepo ist extern gesetzt: `cOOnStar/pcwaechter-public-release`.
 - Release erfolgt via `gh release create` in diesem externen Repo.
-- Nachweis: `.github/workflows/publish_release.yml:19`, `89-105`.
+- Nachweis: `.github/workflows/publish_release.yml:19`, `102-118`.
 
 ### 2) Stabile Asset-Namen (Underscore-Schema)
 - Im Workflow als Pflichtnamen definiert:
   - `installer-manifest.json`
   - `PCWaechter_offline_installer.exe`
   - `PCWaechter_live_installer.exe`
-- Nachweis: `.github/workflows/publish_release.yml:4-7`, `20-21`, `103-105`.
+- Nachweis: `.github/workflows/publish_release.yml:4-7`, `20-21`, `116-118`.
 
 ### 3) Manifest-Generierung inkl. SHA-256
 - Workflow berechnet SHA-256 für Offline- und Live-Installer und schreibt beides ins Manifest.
-- Nachweis: `.github/workflows/publish_release.yml:63-84`.
+- Nachweis: `.github/workflows/publish_release.yml:70-97`.
 - Lokales Pendant vorhanden: `scripts/publish_release.ps1` (gleiche Asset-Namen, SHA-256, Release-Upload).
 - Nachweis: `scripts/publish_release.ps1:27-30`, `55-85`, `95-101`.
 
@@ -41,18 +41,18 @@
 
 | Thema | IST | Delta | Nachweis | Prio |
 |---|---|---|---|---|
-| Offline-Build im Workflow | Platzhalter prüft nur, ob Datei bereits existiert; echter Build-Step fehlt | Echten Build für Offline-Installer ergänzen (oder Artifact-Download) | `.github/workflows/publish_release.yml:31-44` | P0 |
-| Dateinamens-Konsistenz Build↔Release | NSIS erzeugt `PCWaechter_offline_installer_${APP_VERSION_CODE}.exe`, Workflow erwartet `PCWaechter_offline_installer.exe` | Build-Pipeline muss in stabilen Namen kopieren/normalisieren vor Upload | `client/installer/nsis/PCWaechterSetup.nsi:224-226`, `.github/workflows/publish_release.yml:20`, `41-44` | P0 |
-| Manifest-Dateien im Repo | Versionierte Manifest-Dateien sind reduziert (`installer.sha256` leer, ohne `bootstrapper/runtime`) | Für Releases nur generiertes Manifest aus Workflow/Script als Release-Asset verwenden; statische Datei nicht als Wahrheit behandeln | `release/installer-manifest.json:1-7`, `client/installer/manifests/installer-manifest.json:1-8`, `.github/workflows/publish_release.yml:67-84` | P1 |
+| Offline-Build im Workflow | **Erfüllt im Repo**: Workflow baut Desktop Publish + Inno Setup und bricht fail-fast bei fehlendem Output ab | `unknown`: CI-Runner/Permissions für `choco install innosetup` in Zielumgebung verifizieren | `.github/workflows/publish_release.yml:31-57` | P0 |
+| Dateinamens-Konsistenz Build↔Release | **Erfüllt im Repo**: erzeugtes Inno-Artefakt wird auf stabilen Namen `PCWaechter_offline_installer.exe` normalisiert | kein Delta im privaten Repo; externe Release-Verifikation bleibt `unknown` | `.github/workflows/publish_release.yml:20`, `52-57`, `112-118` | P0 |
+| Manifest-Dateien im Repo | Versionierte Manifest-Dateien sind reduziert (`installer.sha256` leer, ohne `bootstrapper/runtime`) | Für Releases nur generiertes Manifest aus Workflow/Script als Release-Asset verwenden; statische Datei nicht als Wahrheit behandeln | `release/installer-manifest.json:1-7`, `client/installer/manifests/installer-manifest.json:1-8`, `.github/workflows/publish_release.yml:70-97` | P1 |
 | Namensschema in Zielbild-Doku | Teile der v6.3-Doku nutzen Bindestrich-Namen (`PCWaechter-Offline-Setup.exe`), Code/Workflow nutzen Underscore-Namen | Einheitliches Asset-Namensschema final festlegen und Doku/Code angleichen | `docs/audit_fix_05.03.2026/05_DOD_CHECKLIST.md:9-11`, `docs/audit_fix_05.03.2026/templates/frontend/home_download_page_update.md:6-8`, `.github/workflows/publish_release.yml:4-7` | P1 |
 
 ## Was im `public-release` Repo umgesetzt/verifiziert sein muss
 
 | Muss-Zustand (Variante A) | Quelle im privaten Repo | Status |
 |---|---|---|
-| Releases enthalten `installer-manifest.json`, `PCWaechter_offline_installer.exe`, `PCWaechter_live_installer.exe` | `.github/workflows/publish_release.yml:4-7`, `99-105` | `unknown` (public repo Inhalt nicht im Workspace) |
-| `latest/download` URLs für alle drei Assets liefern 200 | `.github/workflows/publish_release.yml:61`, `111-117`; `server/home/src/app/download/page.tsx:7`, `93`, `139` | `unknown` (externe Verifikation nötig) |
-| Manifest enthält gültige SHA-256 Werte | `.github/workflows/publish_release.yml:63-84`, `scripts/publish_release.ps1:55-85` | `unknown` (letzter veröffentlichter Release nicht im Repo sichtbar) |
+| Releases enthalten `installer-manifest.json`, `PCWaechter_offline_installer.exe`, `PCWaechter_live_installer.exe` | `.github/workflows/publish_release.yml:4-7`, `116-118` | `unknown` (public repo Inhalt nicht im Workspace) |
+| `latest/download` URLs für alle drei Assets liefern 200 | `.github/workflows/publish_release.yml:74`, `112-118`; `server/home/src/app/download/page.tsx:7`, `93`, `139` | `unknown` (externe Verifikation nötig) |
+| Manifest enthält gültige SHA-256 Werte | `.github/workflows/publish_release.yml:76-91`, `scripts/publish_release.ps1:55-85` | `unknown` (letzter veröffentlichter Release nicht im Repo sichtbar) |
 
 ## Unknowns (fehlende Quellen)
 - Aktueller Inhalt/Workflow des externen Repos `cOOnStar/pcwaechter-public-release`: `unknown`.

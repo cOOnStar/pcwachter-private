@@ -19,6 +19,7 @@
 | `device_tokens` | `DeviceToken` | `op.create_table("device_tokens")` in Rev `20260304_0005`; `last_used_at` in Rev `20260304_0006` | `server/api/app/models.py:159-174`, `server/api/alembic/versions/20260304_0005_add_device_tokens_and_webhooks.py:23-53`, `server/api/alembic/versions/20260304_0006_device_token_last_used_at.py:18-21` |
 | `webhook_events` | `WebhookEvent` | `op.create_table("webhook_events")` in Rev `20260304_0005`; redundanter Unique-Index entfernt in `20260304_0007` | `server/api/app/models.py:176-185`, `server/api/alembic/versions/20260304_0005_add_device_tokens_and_webhooks.py:57-83`, `server/api/alembic/versions/20260304_0007_drop_redundant_unique_indexes.py:30-31` |
 | `feature_overrides` | `FeatureOverride` | `op.create_table("feature_overrides")` in Rev `20260304_0005`; Scope/Target-Refactor in `20260305_0008`; Rename `rollout_pct`→`rollout_percent` in `20260305_0009` | `server/api/app/models.py:187-220`, `server/api/alembic/versions/20260304_0005_add_device_tokens_and_webhooks.py:87-125`, `server/api/alembic/versions/20260305_0008_feature_override_scope_device_blocked.py:30-57`, `server/api/alembic/versions/20260305_0009_rename_rollout_pct_to_rollout_percent.py:15-17` |
+| `notifications` | `Notification` | `op.create_table("notifications")` in Rev `20260305_0011` (idempotente Exists-Guards + Indexe) | `server/api/app/models.py:223-233`, `server/api/alembic/versions/20260305_0011_add_notifications_persistent.py:20-40` |
 
 ## Alembic-Chain (IST)
 
@@ -34,6 +35,7 @@
 | `20260305_0008` | `feature_overrides` scope/target/check; `devices.blocked` | `server/api/alembic/versions/20260305_0008_feature_override_scope_device_blocked.py:30-65` |
 | `20260305_0009` | Rename `rollout_pct`→`rollout_percent` | `server/api/alembic/versions/20260305_0009_rename_rollout_pct_to_rollout_percent.py:15-17` |
 | `20260305_0010` | `devices.desktop_version`, `devices.updater_version`, `devices.update_channel` | `server/api/alembic/versions/20260305_0010_add_desktop_updater_versions.py:20-22` |
+| `20260305_0011` | `notifications` create + Indizes (idempotent guarded) | `server/api/alembic/versions/20260305_0011_add_notifications_persistent.py:14-67` |
 
 ## Bootstrap SQL (IST)
 - `0000_create_devices_and_inventory.sql` ist idempotent (`CREATE TABLE IF NOT EXISTS`) und erzeugt `devices` + `device_inventory` inkl. Constraints/Indizes.
@@ -49,7 +51,7 @@ Zielbildquellen im Repo:
 
 | Zielbild-Tabelle(n) | IST im Code | Delta | Nachweis |
 |---|---|---|---|
-| `notifications`, `notification_reads` (oder read_at Modell) | nicht gefunden | P2: Persistente Notification-Read-States ergänzen | Zielbild: `docs/audit_fix_05.03.2026/01_GAP_MATRIX.md:51`; Abwesenheit: Command `rg -n '__tablename__\s*=\s*"(notifications|notification_reads)"|create_table\(\s*"(notifications|notification_reads)"' server/api/app/models.py server/api/alembic/versions` |
+| `notifications`, `notification_reads` (oder read_at Modell) | **vorhanden als read_at Modell in `notifications`** | kein Delta im privaten Repo | Zielbild: `docs/audit_fix_05.03.2026/01_GAP_MATRIX.md:51`; IST: `server/api/app/models.py:223-233`, `server/api/alembic/versions/20260305_0011_add_notifications_persistent.py:20-40` |
 | `client_config` | nicht gefunden | P2: Remote Client Config DB/API ergänzen | Zielbild: `docs/audit_fix_05.03.2026/01_GAP_MATRIX.md:52`; Abwesenheit: Command `rg -n '__tablename__\s*=\s*"client_config"|create_table\(\s*"client_config"' server/api/app/models.py server/api/alembic/versions` |
 | `rules_catalog`, `rule_findings` | unknown (nur Zielbild-Hinweis, keine verbindliche technische Spezifikation im Repo) | Wenn Zielbild bestätigt: Tabellen + API + UI ergänzen | Zielbild-Hinweis: `docs/audit_fix_05.03.2026/01_GAP_MATRIX.md:53`; fehlende Spezifikationsquelle: keine konkrete Schema-Datei unter `server/api/` |
 | `knowledge_base`, `downloads` (persistente KB/Downloads) | nicht gefunden | P2: Persistenz ergänzen oder Zielbild-Annahme streichen | Zielbild: `docs/audit_fix_05.03.2026/01_GAP_MATRIX.md:54`; Abwesenheit: Command `rg -n '__tablename__\s*=\s*"(knowledge_base|downloads)"|create_table\(\s*"(knowledge_base|downloads)"' server/api/app/models.py server/api/alembic/versions` |
