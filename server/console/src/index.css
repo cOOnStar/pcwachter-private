@@ -1,65 +1,66 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #08080f;
-  --color-surface: #101018;
-  --color-card: #16161f;
-  --color-hover: #1c1c28;
-  --color-border: #26263a;
-  --color-border-muted: #1c1c2c;
+  --color-background: #070710;
+  --color-surface: #0d0d1c;
+  --color-card: #111122;
+  --color-hover: #18183000;
+  --color-border: #1e1e38;
+  --color-border-muted: #161628;
 
-  --color-text-primary: #eeeeff;
-  --color-text-secondary: #9898c0;
-  --color-text-muted: #56566e;
+  --color-text-primary: #f0f0ff;
+  --color-text-secondary: #8080b8;
+  --color-text-muted: #48486a;
 
-  --color-accent: #6e6eff;
-  --color-accent-hover: #8a8aff;
-  --color-accent-subtle: #1c1c3a;
+  --color-accent: #7c5cfc;
+  --color-accent-hover: #9478fd;
+  --color-accent-subtle: #180f42;
 
-  --color-success: #34c98a;
-  --color-success-subtle: #0c2a1c;
+  --color-success: #10d9a0;
+  --color-success-subtle: #051f18;
   --color-warning: #f59e42;
-  --color-warning-subtle: #2a1c08;
-  --color-danger: #f05a6a;
-  --color-danger-subtle: #2a0e16;
-  --color-info: #6ed8ff;
-  --color-info-subtle: #0a2030;
+  --color-warning-subtle: #231100;
+  --color-danger: #f04070;
+  --color-danger-subtle: #20081a;
+  --color-info: #38c0ff;
+  --color-info-subtle: #060f1f;
 
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --sidebar-width: 220px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --sidebar-width: 244px;
 
-  --font-family-sans: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-family-mono: "Consolas", "Fira Code", monospace;
+  --font-family-sans: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Consolas", "Fira Code", monospace;
 }
 
-/* CSS variables for components and legacy patterns */
+/* ── CSS Custom Properties ──────────────────────────────────────────────────── */
 :root {
-  --bg-base: #08080f;
-  --bg-surface: #101018;
-  --bg-card: #16161f;
-  --bg-hover: #1c1c28;
-  --border: #26263a;
-  --border-muted: #1c1c2c;
-  --text-primary: #eeeeff;
-  --text-secondary: #9898c0;
-  --text-muted: #56566e;
-  --accent: #6e6eff;
-  --accent-hover: #8a8aff;
-  --accent-subtle: #1c1c3a;
-  --success: #34c98a;
-  --success-subtle: #0c2a1c;
+  --bg-base: #070710;
+  --bg-surface: #0d0d1c;
+  --bg-card: #111122;
+  --bg-hover: #181830;
+  --border: #1e1e38;
+  --border-muted: #161628;
+  --text-primary: #f0f0ff;
+  --text-secondary: #8080b8;
+  --text-muted: #48486a;
+  --accent: #7c5cfc;
+  --accent-hover: #9478fd;
+  --accent-subtle: #180f42;
+  --success: #10d9a0;
+  --success-subtle: #051f18;
   --warning: #f59e42;
-  --warning-subtle: #2a1c08;
-  --danger: #f05a6a;
-  --danger-subtle: #2a0e16;
-  --info: #6ed8ff;
-  --info-subtle: #0a2030;
-  --sidebar-width: 220px;
-  font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --warning-subtle: #231100;
+  --danger: #f04070;
+  --danger-subtle: #20081a;
+  --info: #38c0ff;
+  --info-subtle: #060f1f;
+  --sidebar-width: 244px;
+  font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* ── Reset ──────────────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -71,7 +72,9 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -83,17 +86,48 @@ button {
   cursor: pointer;
 }
 
-/* Spinner */
+/* ── Custom Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2e2e52;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────────────── */
 .spinner {
   display: inline-block;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--border);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: spin 0.55s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Focus ring ──────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(124,92,252,0.5);
+  outline-offset: 2px;
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(124,92,252,0.25);
+  color: var(--text-primary);
 }

@@ -48,7 +48,7 @@ export default function App() {
       <Sidebar />
       <div className="flex flex-col flex-1 min-h-screen" style={{ marginLeft: "var(--sidebar-width)" }}>
         <TopBar />
-        <main className="flex-1 p-6 max-w-[1400px] w-full">
+        <main className="flex-1 p-7 max-w-[1440px] w-full">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/devices" element={<DevicesPage />} />

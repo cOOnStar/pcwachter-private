@@ -113,7 +113,10 @@
       "Bash(docker compose build console)",
       "Bash(docker compose up -d console home)",
       "Bash(docker compose --env-file ../../../.env up -d console home)",
-      "Bash(docker cp server/api/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py pcw-api:/app/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py)"
+      "Bash(docker cp server/api/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py pcw-api:/app/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py)",
+      "Read(//dev/**)",
+      "Bash(docker compose --env-file ../../../.env build console)",
+      "Bash(docker compose --env-file ../../../.env up -d console)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",
