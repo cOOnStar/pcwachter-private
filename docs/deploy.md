@@ -19,7 +19,7 @@ docker compose --env-file .env up -d
 ## 3) Nginx Proxy Manager – Proxy Hosts
 | Public Hostname | Forward Host | Forward Port | Host Port |
 |---|---|---|---|
-| `login.xn--pcwchter-2za.de` | `localhost` | 18083 | (Keycloak) |
+| `login.xn--pcwchter-2za.de` | `localhost` | 18083 | (Keycloak-Gateway) |
 | `api.xn--pcwchter-2za.de` | `localhost` | 18080 | (FastAPI) |
 | `home.xn--pcwchter-2za.de` | `localhost` | 13001 | (Next.js) |
 | `console.xn--pcwchter-2za.de` | `localhost` | 13000 | (React SPA) |

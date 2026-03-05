@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import KeycloakProvider from "next-auth/providers/keycloak";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: process.env.AUTH_TRUST_HOST === "true",
   providers: [
     KeycloakProvider({
       clientId: process.env.AUTH_KEYCLOAK_ID!,
@@ -17,9 +18,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async jwt({ token, account }) {
       if (account) {
+        // Keep session cookie payload small enough for reverse proxies:
+        // store only access token required for API calls.
         token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.idToken = account.id_token;
         token.expiresAt = account.expires_at;
       }
       return token;

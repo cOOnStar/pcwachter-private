@@ -9,8 +9,8 @@ export default async function AccountLayout({
 }) {
   const session = await auth();
 
-  if (!session) {
-    redirect("/api/auth/signin/keycloak?callbackUrl=%2Faccount");
+  if (!session?.user || !session.accessToken) {
+    redirect("/api/auth/signin?callbackUrl=%2Faccount");
   }
 
   return (

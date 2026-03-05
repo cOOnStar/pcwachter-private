@@ -9,7 +9,8 @@
 | Service | Image | Port (Host→Container) | Beschreibung |
 |---|---|---|---|
 | `postgres` | postgres:17 | 5432→5432 | PostgreSQL Datenbank |
-| `keycloak` | pcw-keycloak:local | 18083→8080 | Keycloak Identity Provider |
+| `keycloak` | pcw-keycloak:local | (intern) 8080 | Keycloak Identity Provider (intern) |
+| `keycloak-gateway` | nginx:1.27-alpine | 18083→80 | Public Login Gateway für `login.*` |
 | `api` | pcw-api:local | 18080→8000 | FastAPI Backend |
 | `console` | pcw-console:local | 13000→80 | Admin Console (React/Vite) |
 | `home` | pcw-home:local | 13001→3000 | Kundenportal (Next.js) |
