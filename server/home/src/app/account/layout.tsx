@@ -10,7 +10,7 @@ export default async function AccountLayout({
   const session = await auth();
 
   if (!session?.user || !session.accessToken) {
-    redirect("/api/auth/signin?callbackUrl=%2Faccount");
+    redirect("/login?callbackUrl=%2Faccount");
   }
 
   return (

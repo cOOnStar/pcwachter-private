@@ -56,7 +56,13 @@
       "Bash(docker exec pcw-zammad-railsserver bash -c 'ls /opt/zammad/config/ | grep -v \"\"^d\"\" ; find /opt/zammad/config -name \"\"*.yml\"\" | head -10')",
       "Bash(docker exec pcw-zammad env)",
       "Bash(docker exec pcw-zammad-railsserver bash -c 'DATABASE_URL=\"\"postgresql://zammad:zammad_dev@zammad-db:5432/zammad\"\" bundle exec rails r \"\"admin = User.find\\(2\\); t = Token.create!\\(action: \\\\\"\"api\\\\\"\", user_id: admin.id, name: \\\\\"\"pcw-api\\\\\"\", persistent: true\\); puts t.token\"\" 2>&1 | tail -5')",
-      "Bash(docker compose -f server/infra/compose/docker-compose.yml --env-file .env up -d --force-recreate api)"
+      "Bash(docker compose -f server/infra/compose/docker-compose.yml --env-file .env up -d --force-recreate api)",
+      "Bash(docker compose build pcw-home)",
+      "Bash(docker compose config --services)",
+      "Bash(docker compose build home)",
+      "Bash(docker compose up -d home)",
+      "Bash(docker compose --env-file \"c:\\\\Users\\\\Calvin\\\\Documents\\\\PCWächter\\\\.env\" up -d home)",
+      "Bash(docker ps --filter \"name=pcw-home\" --format \"table {{.Names}}\\\\t{{.Status}}\\\\t{{.Ports}}\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",
