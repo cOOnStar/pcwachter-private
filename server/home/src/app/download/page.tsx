@@ -167,6 +167,80 @@ export default function DownloadPage() {
         </div>
       </div>
 
+      {/* Silent install */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "1rem",
+          padding: "1.5rem",
+          marginTop: "1rem",
+        }}
+      >
+        <h2 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "0.75rem" }}>
+          Silent-Installation (Unattended)
+        </h2>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1rem", lineHeight: 1.6 }}>
+          Für automatisierte Deployments (GPO, Intune, SCCM) starten Sie den Installer mit:
+        </p>
+        <code
+          style={{
+            display: "block",
+            background: "var(--surface2)",
+            border: "1px solid var(--border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem 1rem",
+            fontFamily: "monospace",
+            fontSize: "0.85rem",
+            color: "var(--text)",
+            wordBreak: "break-all",
+          }}
+        >
+          {manifest?.installer?.silentArgs
+            ? `${OFFLINE_NAME} ${manifest.installer.silentArgs}`
+            : `${OFFLINE_NAME} /S /quiet`}
+        </code>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
+          <code>/S /quiet</code> unterdrückt alle Dialoge. Empfohlen für Massendeployments.
+        </p>
+      </div>
+
+      {/* SHA verification guide */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "1rem",
+          padding: "1.5rem",
+          marginTop: "1rem",
+        }}
+      >
+        <h2 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: "0.75rem" }}>
+          SHA-256 verifizieren
+        </h2>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1rem", lineHeight: 1.6 }}>
+          Prüfen Sie den Installer in PowerShell vor der Ausführung:
+        </p>
+        <code
+          style={{
+            display: "block",
+            background: "var(--surface2)",
+            border: "1px solid var(--border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem 1rem",
+            fontFamily: "monospace",
+            fontSize: "0.85rem",
+            color: "var(--text)",
+            wordBreak: "break-all",
+          }}
+        >
+          {`Get-FileHash .\\${OFFLINE_NAME} -Algorithm SHA256 | Select-Object Hash`}
+        </code>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
+          Das Ergebnis muss mit dem oben angezeigten SHA-256-Wert übereinstimmen.
+        </p>
+      </div>
+
       <p style={{ marginTop: "2rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
         Alle Releases:{" "}
         <a

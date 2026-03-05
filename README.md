@@ -57,3 +57,19 @@ npm ci && npm run dev
 ```bash
 dotnet build client/pcwaechter-client.sln -c Release
 ```
+
+## Home-Portal ENV-Variablen (`server/home/.env.local`)
+
+| Variable | Pflicht | Beschreibung |
+|---|---|---|
+| `NEXTAUTH_URL` | ✓ | Öffentliche URL des Portals (z. B. `https://home.pcwaechter.de`) |
+| `NEXTAUTH_SECRET` | ✓ | Zufälliger Secret-String (mind. 32 Zeichen) |
+| `KEYCLOAK_ISSUER` | ✓ | Keycloak-Realm-URL (z. B. `https://auth.pcwaechter.de/realms/pcw`) |
+| `KEYCLOAK_CLIENT_ID` | ✓ | OAuth-Client-ID in Keycloak |
+| `KEYCLOAK_CLIENT_SECRET` | ✓ | OAuth-Client-Secret aus Keycloak |
+| `NEXT_PUBLIC_API_URL` | ✓ | Öffentliche API-URL (z. B. `https://api.pcwächter.de`) |
+| `API_INTERNAL_URL` | – | Interne API-URL für Server-Side-Requests (z. B. `http://pcw-api:8000/api/v1`); fällt auf `NEXT_PUBLIC_API_URL` zurück |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | – | Stripe Publishable Key; fehlt → Billing zeigt direkt Plan-Auswahl |
+| `STRIPE_SECRET_KEY` | – | Stripe Secret Key (für Checkout & Kundenportal) |
+| `STRIPE_WEBHOOK_SECRET` | – | Stripe Webhook-Signing-Secret |
+| `NEXT_PUBLIC_RELEASE_BASE_URL` | – | GitHub-Releases-Download-URL; Standard: `https://github.com/cOOnStar/pcwaechter-public-release/releases/latest/download` |

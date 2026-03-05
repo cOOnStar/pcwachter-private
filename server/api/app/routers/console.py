@@ -26,7 +26,7 @@ from ..schemas import (
     PlanUpsertRequestExtended,
 )
 from ..security import require_api_key
-from ..security_jwt import require_console_owner, require_console_user
+from ..security_jwt import require_console_owner, require_console_user, require_home_user
 from ..settings import settings
 
 router = APIRouter(prefix="/console", tags=["console"])
@@ -1970,6 +1970,126 @@ def ui_unblock_license(
 
     db.commit()
     return {"ok": True, "license_key": lic.license_key, "state": lic.state}
+
+
+# ---------------------------------------------------------------------------
+# Home Portal – Device endpoints (scoped to the authenticated home user)
+# ---------------------------------------------------------------------------
+
+class HomeDeviceItem(BaseModel):
+    device_install_id: str
+    host_name: str | None = None
+    os_name: str | None = None
+    os_version: str | None = None
+    last_seen_at: datetime | None = None
+    online: bool = False
+    primary_ip: str | None = None
+
+
+class HomeDeviceListResponse(BaseModel):
+    items: list[HomeDeviceItem]
+    total: int
+
+
+class HomeDeviceRenameRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+
+
+@router.get("/home/devices", response_model=HomeDeviceListResponse)
+def home_list_devices(
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_home_user),
+):
+    """List devices activated for the current home portal user (via their licenses)."""
+    user_id = _user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="invalid token: missing sub")
+
+    install_ids = db.execute(
+        select(License.activated_device_install_id)
+        .where(
+            License.activated_by_user_id == user_id,
+            License.activated_device_install_id.is_not(None),
+        )
+    ).scalars().all()
+
+    if not install_ids:
+        return HomeDeviceListResponse(items=[], total=0)
+
+    devices = db.execute(
+        select(Device).where(Device.device_install_id.in_(install_ids))
+    ).scalars().all()
+
+    items = [
+        HomeDeviceItem(
+            device_install_id=d.device_install_id,
+            host_name=d.host_name,
+            os_name=d.os_name,
+            os_version=d.os_version,
+            last_seen_at=d.last_seen_at,
+            online=is_online(d.last_seen_at),
+            primary_ip=d.primary_ip,
+        )
+        for d in devices
+    ]
+    return HomeDeviceListResponse(items=items, total=len(items))
+
+
+@router.patch("/home/devices/{device_install_id}/name")
+def home_rename_device(
+    device_install_id: str,
+    payload: HomeDeviceRenameRequest,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_home_user),
+):
+    """Rename (set host_name) on a device owned by the current home user."""
+    user_id = _user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="invalid token: missing sub")
+
+    owned = db.execute(
+        select(License.activated_device_install_id).where(
+            License.activated_by_user_id == user_id,
+            License.activated_device_install_id == device_install_id,
+        )
+    ).scalar_one_or_none()
+    if not owned:
+        raise HTTPException(status_code=404, detail="device not found or not owned by user")
+
+    device = db.execute(
+        select(Device).where(Device.device_install_id == device_install_id)
+    ).scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="device record not found")
+
+    device.host_name = payload.name.strip()
+    db.commit()
+    return {"ok": True, "device_install_id": device_install_id, "host_name": device.host_name}
+
+
+@router.delete("/home/devices/{device_install_id}")
+def home_revoke_device(
+    device_install_id: str,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_home_user),
+):
+    """Revoke device: clears activated_device_install_id from the user's license."""
+    user_id = _user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="invalid token: missing sub")
+
+    license_row = db.execute(
+        select(License).where(
+            License.activated_by_user_id == user_id,
+            License.activated_device_install_id == device_install_id,
+        )
+    ).scalar_one_or_none()
+    if not license_row:
+        raise HTTPException(status_code=404, detail="device not found or not owned by user")
+
+    license_row.activated_device_install_id = None
+    db.commit()
+    return {"ok": True}
 
 
 @router.patch("/ui/licenses/{license_key}")
