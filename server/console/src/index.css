@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #080a12;
-  --color-surface: #0e1424;
-  --color-card: #11182b;
-  --color-hover: #141d33;
-  --color-border: #1e2d4f;
-  --color-border-muted: #182240;
+  --color-background: #08080f;
+  --color-surface: #101018;
+  --color-card: #16161f;
+  --color-hover: #1c1c28;
+  --color-border: #26263a;
+  --color-border-muted: #1c1c2c;
 
-  --color-text-primary: #e7ecff;
-  --color-text-secondary: #99a7cf;
-  --color-text-muted: #5a6a95;
+  --color-text-primary: #eeeeff;
+  --color-text-secondary: #9898c0;
+  --color-text-muted: #56566e;
 
-  --color-accent: #4f7df5;
-  --color-accent-hover: #6290ff;
-  --color-accent-subtle: #1a2a52;
+  --color-accent: #6e6eff;
+  --color-accent-hover: #8a8aff;
+  --color-accent-subtle: #1c1c3a;
 
   --color-success: #34c98a;
-  --color-success-subtle: #0d2e1e;
+  --color-success-subtle: #0c2a1c;
   --color-warning: #f59e42;
-  --color-warning-subtle: #2e1f0a;
+  --color-warning-subtle: #2a1c08;
   --color-danger: #f05a6a;
-  --color-danger-subtle: #2e0f18;
+  --color-danger-subtle: #2a0e16;
   --color-info: #6ed8ff;
-  --color-info-subtle: #0d2535;
+  --color-info-subtle: #0a2030;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -36,26 +36,26 @@
 
 /* CSS variables for components and legacy patterns */
 :root {
-  --bg-base: #080a12;
-  --bg-surface: #0e1424;
-  --bg-card: #11182b;
-  --bg-hover: #141d33;
-  --border: #1e2d4f;
-  --border-muted: #182240;
-  --text-primary: #e7ecff;
-  --text-secondary: #99a7cf;
-  --text-muted: #5a6a95;
-  --accent: #4f7df5;
-  --accent-hover: #6290ff;
-  --accent-subtle: #1a2a52;
+  --bg-base: #08080f;
+  --bg-surface: #101018;
+  --bg-card: #16161f;
+  --bg-hover: #1c1c28;
+  --border: #26263a;
+  --border-muted: #1c1c2c;
+  --text-primary: #eeeeff;
+  --text-secondary: #9898c0;
+  --text-muted: #56566e;
+  --accent: #6e6eff;
+  --accent-hover: #8a8aff;
+  --accent-subtle: #1c1c3a;
   --success: #34c98a;
-  --success-subtle: #0d2e1e;
+  --success-subtle: #0c2a1c;
   --warning: #f59e42;
-  --warning-subtle: #2e1f0a;
+  --warning-subtle: #2a1c08;
   --danger: #f05a6a;
-  --danger-subtle: #2e0f18;
+  --danger-subtle: #2a0e16;
   --info: #6ed8ff;
-  --info-subtle: #0d2535;
+  --info-subtle: #0a2030;
   --sidebar-width: 220px;
   font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
 }

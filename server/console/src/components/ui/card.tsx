@@ -5,7 +5,11 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5", className)}
+      className={cn("border border-[var(--border)] rounded-xl p-5", className)}
+      style={{
+        background: "linear-gradient(160deg, rgba(255,255,255,0.025) 0%, var(--bg-card) 60%)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
+      }}
       {...props}
     />
   )

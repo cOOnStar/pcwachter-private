@@ -8,15 +8,34 @@ import PageHeader from "../components/shared/PageHeader";
 import ErrorBanner from "../components/shared/ErrorBanner";
 import { formatRelative } from "@/lib/utils";
 
-function KpiCard({ label, value, sub, icon }: { label: string; value: number | string; sub?: string; icon: React.ReactNode }) {
+function KpiCard({
+  label,
+  value,
+  sub,
+  icon,
+  accent = "var(--accent)",
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  icon: React.ReactNode;
+  accent?: string;
+}) {
   return (
-    <Card className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <Card
+      className="flex flex-col gap-2 relative overflow-hidden"
+      style={{ borderLeft: `3px solid ${accent}` }}
+    >
+      <div
+        className="absolute inset-0 pointer-events-none rounded-xl"
+        style={{ background: `linear-gradient(135deg, ${accent}12 0%, transparent 60%)` }}
+      />
+      <div className="flex items-center justify-between relative">
         <span className="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider font-semibold">{label}</span>
-        <span className="text-[var(--text-muted)]">{icon}</span>
+        <span style={{ color: accent, opacity: 0.7 }}>{icon}</span>
       </div>
-      <div className="text-3xl font-bold text-[var(--text-primary)] leading-none">{value}</div>
-      {sub && <span className="text-xs text-[var(--text-secondary)]">{sub}</span>}
+      <div className="text-3xl font-bold text-[var(--text-primary)] leading-none relative">{value}</div>
+      {sub && <span className="text-xs text-[var(--text-secondary)] relative">{sub}</span>}
     </Card>
   );
 }
@@ -42,10 +61,10 @@ export default function DashboardPage() {
           ))
         ) : data ? (
           <>
-            <KpiCard label="Geräte gesamt" value={data.kpis.totalDevices} sub={`${data.kpis.onlineDevices} online`} icon={<Monitor className="w-4 h-4" />} />
-            <KpiCard label="Online" value={data.kpis.onlineDevices} icon={<Activity className="w-4 h-4" />} />
-            <KpiCard label="Telemetrie 24h" value={data.kpis.telemetry24h} icon={<Radio className="w-4 h-4" />} />
-            <KpiCard label="Lizenzen aktiv" value={data.kpis.activeLicenses} sub={`von ${data.kpis.totalLicenses} gesamt`} icon={<KeyRound className="w-4 h-4" />} />
+            <KpiCard label="Geräte gesamt" value={data.kpis.totalDevices} sub={`${data.kpis.onlineDevices} online`} icon={<Monitor className="w-4 h-4" />} accent="var(--accent)" />
+            <KpiCard label="Online" value={data.kpis.onlineDevices} icon={<Activity className="w-4 h-4" />} accent="var(--success)" />
+            <KpiCard label="Telemetrie 24h" value={data.kpis.telemetry24h} icon={<Radio className="w-4 h-4" />} accent="var(--info)" />
+            <KpiCard label="Lizenzen aktiv" value={data.kpis.activeLicenses} sub={`von ${data.kpis.totalLicenses} gesamt`} icon={<KeyRound className="w-4 h-4" />} accent="var(--warning)" />
           </>
         ) : null}
       </div>

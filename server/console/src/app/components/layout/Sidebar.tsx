@@ -48,18 +48,25 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed top-0 left-0 z-[100] flex flex-col min-h-screen bg-[var(--bg-surface)] border-r border-[var(--border)]"
-      style={{ width: "var(--sidebar-width)" }}
+      className="fixed top-0 left-0 z-[100] flex flex-col min-h-screen border-r border-[var(--border)]"
+      style={{
+        width: "var(--sidebar-width)",
+        background: "linear-gradient(180deg, #12121c 0%, #0e0e18 100%)",
+        boxShadow: "2px 0 12px rgba(0,0,0,0.4)",
+      }}
     >
       <div className="flex items-center gap-2.5 px-4 py-5 border-b border-[var(--border-muted)] font-bold text-[var(--text-primary)]">
-        <div className="w-7 h-7 bg-[var(--accent)] rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0">
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
+          style={{ background: "linear-gradient(135deg, #6e6eff 0%, #a78bff 100%)" }}
+        >
           PC
         </div>
-        <span className="text-[0.95rem]">PCWächter</span>
+        <span className="text-[0.95rem] tracking-tight">PCWächter</span>
       </div>
 
       <nav className="flex-1 px-2 py-3 flex flex-col gap-0.5 overflow-y-auto">
-        <span className="text-[0.68rem] text-[var(--text-muted)] uppercase tracking-widest px-2.5 py-2.5 pb-1">
+        <span className="text-[0.65rem] text-[var(--text-muted)] uppercase tracking-widest px-2.5 py-2.5 pb-1 font-semibold">
           Navigation
         </span>
         {visibleItems.map((item) => (
@@ -69,11 +76,20 @@ export default function Sidebar() {
             end={item.path === "/"}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors",
+                "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-150",
                 isActive
-                  ? "bg-[var(--accent-subtle)] text-[var(--accent-hover)]"
+                  ? "text-[var(--accent-hover)] font-medium"
                   : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               )
+            }
+            style={({ isActive }) =>
+              isActive
+                ? {
+                    background: "linear-gradient(90deg, rgba(110,110,255,0.15) 0%, transparent 100%)",
+                    borderLeft: "2px solid var(--accent)",
+                    paddingLeft: "8px",
+                  }
+                : {}
             }
           >
             {item.icon}
