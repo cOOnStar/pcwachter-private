@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 limiter = Limiter(key_func=get_remote_address)
 
 from ..db import get_db
-from ..models import License, Plan, Subscription, WebhookEvent
+from ..models import License, Plan, Subscription, WebhookEventV2
 from ..schemas import (
     OkResponse,
     StripeCheckoutRequest,
@@ -159,43 +159,69 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     event_id: str = event.get("id", "")
     event_type: str = event["type"]
+    if not event_id:
+        raise HTTPException(status_code=400, detail="missing webhook event id")
 
     # Idempotency: skip already-processed events
-    existing = db.execute(select(WebhookEvent).where(WebhookEvent.stripe_event_id == event_id)).scalar_one_or_none()
+    existing = db.execute(
+        select(WebhookEventV2).where(
+            WebhookEventV2.source == "stripe",
+            WebhookEventV2.event_id == event_id,
+        )
+    ).scalar_one_or_none()
     if existing:
         return OkResponse()
 
     now_utc = datetime.now(timezone.utc)
-    db.add(WebhookEvent(
+    event_row = WebhookEventV2(
+        source="stripe",
+        event_id=event_id,
         event_type=event_type,
-        stripe_event_id=event_id,
         payload=event.get("data"),
+        received_at=now_utc,
         processed_at=now_utc,
-    ))
+        status="ok",
+        error=None,
+    )
+    db.add(event_row)
     db.flush()
 
-    if event_type == "checkout.session.completed":
-        session = event["data"]["object"]
-        _handle_checkout_completed(db, session)
+    try:
+        if event_type == "checkout.session.completed":
+            session = event["data"]["object"]
+            _handle_checkout_completed(db, session)
 
-    elif event_type in ("invoice.paid",):
-        invoice = event["data"]["object"]
-        _handle_invoice_paid(db, invoice)
+        elif event_type in ("invoice.paid",):
+            invoice = event["data"]["object"]
+            _handle_invoice_paid(db, invoice)
 
-    elif event_type in ("invoice.payment_failed",):
-        invoice = event["data"]["object"]
-        _handle_invoice_payment_failed(db, invoice)
+        elif event_type in ("invoice.payment_failed",):
+            invoice = event["data"]["object"]
+            _handle_invoice_payment_failed(db, invoice)
 
-    elif event_type in ("customer.subscription.updated",):
-        subscription = event["data"]["object"]
-        _handle_subscription_updated(db, subscription)
+        elif event_type in ("customer.subscription.updated",):
+            subscription = event["data"]["object"]
+            _handle_subscription_updated(db, subscription)
 
-    elif event_type in ("customer.subscription.deleted",):
-        subscription = event["data"]["object"]
-        _handle_subscription_deleted(db, subscription)
+        elif event_type in ("customer.subscription.deleted",):
+            subscription = event["data"]["object"]
+            _handle_subscription_deleted(db, subscription)
 
-    # Persist webhook idempotency marker even for unhandled event types.
-    db.commit()
+        # Persist webhook idempotency marker even for unhandled event types.
+        event_row.status = "ok"
+        event_row.error = None
+        event_row.processed_at = datetime.now(timezone.utc)
+        db.commit()
+    except Exception as exc:
+        try:
+            event_row.status = "failed"
+            event_row.error = str(exc)[:4000]
+            event_row.processed_at = datetime.now(timezone.utc)
+            db.commit()
+        except Exception:
+            db.rollback()
+        raise
+
     return OkResponse()
 
 

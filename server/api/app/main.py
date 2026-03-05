@@ -22,6 +22,7 @@ from .routers.notifications import router as notifications_router
 from .routers.payments import router as payments_router
 from .routers.support import router as support_router
 from .routers.telemetry import router as telemetry_router
+from .routers.updates import router as updates_router
 from .settings import settings
 
 logger = logging.getLogger("pcw.api")
@@ -56,6 +57,10 @@ _PRE_AUTH_RULES: dict[str, tuple] = {
     "/api/v1/agent/register":    (rl_parse("10/minute"), 60),
     "/payments/webhook":         (rl_parse("120/minute"), 60),
     "/api/v1/payments/webhook":  (rl_parse("120/minute"), 60),
+    "/support/attachments":      (rl_parse("120/minute"), 60),
+    "/api/v1/support/attachments": (rl_parse("120/minute"), 60),
+    "/support/webhook":          (rl_parse("120/minute"), 60),
+    "/api/v1/support/webhook":   (rl_parse("120/minute"), 60),
     "/license/status":           (rl_parse("30/minute"), 60),
     "/api/v1/license/status":    (rl_parse("30/minute"), 60),
 }
@@ -210,6 +215,7 @@ _v1.include_router(license_router)
 _v1.include_router(payments_router)
 _v1.include_router(support_router)
 _v1.include_router(notifications_router)
+_v1.include_router(updates_router)
 app.include_router(_v1)
 
 # ---------------------------------------------------------------------------
@@ -225,3 +231,4 @@ app.include_router(license_router)
 app.include_router(payments_router)
 app.include_router(support_router)
 app.include_router(notifications_router)
+app.include_router(updates_router)

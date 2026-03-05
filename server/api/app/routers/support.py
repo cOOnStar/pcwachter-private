@@ -1,21 +1,31 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 # require_home_user : pcw_user | pcw_admin | pcw_console | pcw_support
 # require_console_owner: pcw_admin | owner | admin  (write/admin access)
+from ..db import get_db
+from ..models import WebhookEventV2
 from ..security_jwt import require_console_owner, require_home_user
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/support", tags=["support"])
+limiter = Limiter(key_func=get_remote_address)
 
 # ---------------------------------------------------------------------------
 # Elevated roles – admin/support tier (not just pcw_user)
@@ -29,6 +39,10 @@ def _is_elevated(user: dict) -> bool:
     """True when user carries any admin/support role (not just pcw_user)."""
     roles = {r.lower() for r in (user.get("roles") or [])}
     return bool(roles & _ELEVATED_ROLES)
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +434,9 @@ async def reply_ticket(
 
 
 @router.post("/attachments")
+@limiter.limit("120/minute")
 async def upload_attachment(
+    request: Request,
     file: UploadFile = File(...),
     _user: dict = Depends(require_home_user),
 ) -> Dict[str, Any]:
@@ -539,12 +555,60 @@ async def diag_zammad_user(
 # ---------------------------------------------------------------------------
 
 @router.post("/webhook")
+@limiter.limit("120/minute")
 async def zammad_webhook(
+    request: Request,
     x_zammad_secret: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
 ) -> Dict[str, bool]:
     """Inbound webhook from Zammad. Verified via shared secret."""
     if not settings.ZAMMAD_WEBHOOK_SECRET:
         raise HTTPException(status_code=500, detail="server_not_configured")
     if x_zammad_secret != settings.ZAMMAD_WEBHOOK_SECRET:
         raise HTTPException(status_code=401, detail="invalid_webhook_secret")
+
+    payload_bytes = await request.body()
+    event_id = (
+        request.headers.get("x-zammad-event-id")
+        or request.headers.get("x-request-id")
+        or hashlib.sha256(payload_bytes).hexdigest()
+    )
+    event_type = (
+        request.headers.get("x-zammad-event")
+        or request.headers.get("x-zammad-event-type")
+        or "zammad.webhook"
+    )
+
+    payload: dict[str, Any] | None
+    if not payload_bytes:
+        payload = {}
+    else:
+        try:
+            parsed = json.loads(payload_bytes.decode("utf-8"))
+            payload = parsed if isinstance(parsed, dict) else {"data": parsed}
+        except Exception:
+            payload = {"raw": payload_bytes.decode("utf-8", errors="replace")}
+
+    existing = db.execute(
+        select(WebhookEventV2).where(
+            WebhookEventV2.source == "zammad",
+            WebhookEventV2.event_id == event_id,
+        )
+    ).scalar_one_or_none()
+    if existing:
+        return {"ok": True}
+
+    db.add(
+        WebhookEventV2(
+            source="zammad",
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            received_at=_utcnow(),
+            processed_at=_utcnow(),
+            status="ok",
+            error=None,
+        )
+    )
+    db.commit()
     return {"ok": True}

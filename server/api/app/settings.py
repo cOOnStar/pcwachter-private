@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     ZAMMAD_DEFAULT_ORG_ID: int = 0
     # Set to the Zammad role ID for "Customer". 0 = resolve dynamically via GET /api/v1/roles.
     ZAMMAD_CUSTOMER_ROLE_ID: int = 0
-    SUPPORT_ATTACHMENT_MAX_BYTES: int = 5 * 1024 * 1024
+    SUPPORT_ATTACHMENT_MAX_BYTES: int = 25 * 1024 * 1024
 
     # Storage
     EXPORT_DIR: str = "/data/exports"

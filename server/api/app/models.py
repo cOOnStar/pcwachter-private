@@ -189,6 +189,55 @@ class WebhookEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class WebhookEventV2(Base):
+    __tablename__ = "webhook_events_v2"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="ok", server_default="ok")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("source", "event_id", name="uq_webhook_events_v2_source_event_id"),
+        CheckConstraint("source IN ('stripe', 'zammad')", name="ck_webhook_events_v2_source"),
+        CheckConstraint("status IN ('ok', 'failed')", name="ck_webhook_events_v2_status"),
+        Index("ix_webhook_events_v2_source_type_received", "source", "event_type", "received_at"),
+    )
+
+
+class UpdateManifest(Base):
+    __tablename__ = "update_manifests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    component: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel: Mapped[str] = mapped_column(String(32), nullable=False)
+    latest_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    min_supported_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    mandatory: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    download_url: Mapped[str] = mapped_column(Text, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(128), nullable=False)
+    changelog: Mapped[str | None] = mapped_column(Text, nullable=True)
+    released_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("component", "channel", name="uq_update_manifests_component_channel"),
+        CheckConstraint("component IN ('desktop', 'agent', 'updater')", name="ck_update_manifests_component"),
+        CheckConstraint("channel IN ('stable', 'beta', 'internal')", name="ck_update_manifests_channel"),
+    )
+
+
 class FeatureOverride(Base):
     """Per-feature kill-switch and rollout control.
 

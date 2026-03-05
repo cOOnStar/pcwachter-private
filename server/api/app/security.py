@@ -36,6 +36,7 @@ def require_agent_auth(
     x_api_key: str | None = Header(default=None),
     x_agent_api_key: str | None = Header(default=None),
     x_device_token: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> str:
     """Accept either a static API key OR a device token issued at registration."""
@@ -45,10 +46,15 @@ def require_agent_auth(
     if supplied_key and supplied_key in configured:
         return f"apikey:{supplied_key}"
 
-    # 2. Try device token
-    if x_device_token:
+    # 2. Try device token (legacy header OR Authorization: Bearer <device_token>)
+    bearer_token: str | None = None
+    if authorization and authorization.startswith("Bearer "):
+        bearer_token = authorization.split(" ", 1)[1].strip() or None
+
+    supplied_device_token = (x_device_token or "").strip() or bearer_token
+    if supplied_device_token:
         from .models import DeviceToken
-        token_hash = _hash_token(x_device_token.strip())
+        token_hash = _hash_token(supplied_device_token)
         now = datetime.now(timezone.utc)
         dt = db.execute(
             select(DeviceToken).where(
