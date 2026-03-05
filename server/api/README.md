@@ -79,3 +79,33 @@ docker compose -f server/api/infra/compose/docker-compose.yml up -d --build
 
 Alle Machine-to-Machine und Admin-Endpoints erwarten einen gültigen API-Key (`X-API-Key` oder `X-Agent-Api-Key`).
 Konfiguration über `API_KEYS` (CSV) und optional `AGENT_API_KEYS`.
+
+## Stripe Setup (Home Checkout + Billing Portal)
+
+Webhook Endpoint (kanonisch):
+
+- `POST /api/v1/payments/webhook`
+
+Benötigte Stripe-Events:
+
+- `checkout.session.completed`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Benötigte ENV im API-Service:
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- optional `STRIPE_PORTAL_CONFIG_NO_CANCEL`
+- optional `STRIPE_PORTAL_CONFIG_WITH_CANCEL`
+
+### Smoke-Test Checkliste
+
+1. Home-Login durchführen und in `/account/billing` einen kostenpflichtigen Plan auswählen (`Jetzt kaufen`).
+2. Prüfen, dass `/api/checkout` im Home auf API `POST /api/v1/payments/create-checkout` geht und Stripe Checkout öffnet.
+3. Nach erfolgreichem Checkout Rückkehr auf `/account/billing?checkout=success` prüfen.
+4. Beobachten, dass der Banner in Billing nach Polling auf „Lizenz aktiv“ wechselt (oder Timeout-Hinweis nach 60s).
+5. Stripe sendet Webhook an `/api/v1/payments/webhook`; danach Subscription/Lizenz in DB prüfen.
+6. Billing Portal öffnen (`/api/portal` → `/api/v1/payments/portal`); bei fehlendem Billing-Account muss Home `no_billing_account` und CTA anzeigen.

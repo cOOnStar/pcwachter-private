@@ -155,11 +155,10 @@ function CancelBanner() {
 }
 
 export default function BillingPage() {
-  const stripeEnabled = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
   const [noBillingAccount, setNoBillingAccount] = useState(false);
-  const [showPlans, setShowPlans] = useState(!stripeEnabled);
+  const [showPlans, setShowPlans] = useState(false);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
@@ -182,7 +181,6 @@ export default function BillingPage() {
   }, [showPlans]);
 
   async function openPortal() {
-    if (!stripeEnabled) return;
     setPortalLoading(true);
     setPortalError("");
     setNoBillingAccount(false);
@@ -197,8 +195,9 @@ export default function BillingPage() {
         const body = await res.json().catch(() => ({})) as { error?: string };
         if (body.error === "no_billing_account") {
           setNoBillingAccount(true);
+          return;
         }
-        setShowPlans(true);
+        setPortalError("Fehler beim Öffnen des Kundenportals.");
         return;
       }
       setPortalError("Fehler beim Öffnen des Kundenportals.");
@@ -244,7 +243,7 @@ export default function BillingPage() {
       </Suspense>
 
       {/* Portal section */}
-      {stripeEnabled && !showPlans && (
+      {!showPlans && (
         <div
           style={{
             background: "var(--surface)",
@@ -278,6 +277,30 @@ export default function BillingPage() {
               {portalError}
             </p>
           )}
+          {noBillingAccount && (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: 0 }}>
+                Kein Billing-Account gefunden.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setNoBillingAccount(false);
+                  setShowPlans(true);
+                }}
+              >
+                Erst kaufen, dann verwalten
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -302,15 +325,13 @@ export default function BillingPage() {
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
             <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Plan auswählen</h2>
-            {stripeEnabled && (
-              <button
-                className="btn btn-outline"
-                style={{ fontSize: "0.8rem", padding: "0.35rem 0.75rem" }}
-                onClick={() => { setShowPlans(false); setNoBillingAccount(false); }}
-              >
-                ← Zurück
-              </button>
-            )}
+            <button
+              className="btn btn-outline"
+              style={{ fontSize: "0.8rem", padding: "0.35rem 0.75rem" }}
+              onClick={() => { setShowPlans(false); setNoBillingAccount(false); }}
+            >
+              ← Zurück
+            </button>
           </div>
 
           {plansLoading && (
@@ -353,7 +374,7 @@ export default function BillingPage() {
                 </div>
               )}
               {plans.map((plan) => {
-                const canBuy = stripeEnabled && Boolean(plan.stripe_price_id);
+                const canBuy = Boolean(plan.stripe_price_id);
                 const isFree = plan.amount_cents === 0 || plan.price_eur === 0;
                 const displayPrice = plan.amount_cents != null
                   ? (plan.amount_cents / 100).toFixed(2)

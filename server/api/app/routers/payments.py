@@ -8,6 +8,7 @@ import secrets
 import string
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -58,6 +59,13 @@ def _get_or_create_stripe_customer(email: str, name: str | None = None) -> str:
     return customer.id
 
 
+def _append_query_param(url: str, key: str, value: str) -> str:
+    parsed = urlparse(url)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    query.append((key, value))
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
 @router.post("/create-checkout", response_model=StripeCheckoutResponse)
 async def create_checkout(
     payload: StripeCheckoutRequest,
@@ -86,7 +94,7 @@ async def create_checkout(
         customer=customer_id,
         mode="subscription" if plan.duration_days and plan.duration_days <= 365 else "payment",
         line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-        success_url=payload.success_url + "?session_id={CHECKOUT_SESSION_ID}",
+        success_url=_append_query_param(payload.success_url, "session_id", "{CHECKOUT_SESSION_ID}"),
         cancel_url=payload.cancel_url,
         metadata={
             "keycloak_user_id": keycloak_user_id,

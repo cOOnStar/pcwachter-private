@@ -6,6 +6,24 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "https://api.xn--pcwchter-2za.de";
 
+function apiV1Base(): string {
+  const base = API_URL.replace(/\/+$/, "");
+  return base.endsWith("/api/v1") ? base : `${base}/api/v1`;
+}
+
+async function readErrorMessage(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "");
+  if (!text) return "Checkout fehlgeschlagen.";
+  try {
+    const body = JSON.parse(text) as { detail?: string; error?: string };
+    if (typeof body.detail === "string" && body.detail.trim()) return body.detail;
+    if (typeof body.error === "string" && body.error.trim()) return body.error;
+  } catch {
+    // Fall back to plain text.
+  }
+  return text;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.accessToken) {
@@ -19,9 +37,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "plan_id required" }, { status: 400 });
   }
 
-  const origin = req.headers.get("origin") ?? "https://home.xn--pcwchter-2za.de";
+  const origin = req.nextUrl.origin;
 
-  const apiRes = await fetch(`${API_URL}/payments/create-checkout`, {
+  const apiRes = await fetch(`${apiV1Base()}/payments/create-checkout`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
@@ -34,13 +52,14 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  const data = await apiRes.json().catch(() => ({}));
   if (!apiRes.ok) {
+    const message = await readErrorMessage(apiRes);
     return NextResponse.json(
-      { error: (data as { detail?: string }).detail ?? "Checkout fehlgeschlagen." },
+      { error: message, status: apiRes.status },
       { status: apiRes.status }
     );
   }
 
-  return NextResponse.json(data, { status: 200 });
+  const data = await apiRes.json().catch(() => ({})) as { checkout_url?: string };
+  return NextResponse.json({ checkout_url: data.checkout_url }, { status: 200 });
 }

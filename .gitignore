@@ -2,6 +2,7 @@
 .env.*
 *.env
 *.env.*
+!server/home/.env.example
 **/secrets/**
 **/*.pem
 **/*.pfx

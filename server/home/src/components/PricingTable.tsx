@@ -33,15 +33,12 @@ interface Props {
 
 export default function PricingTable({ plans }: Props) {
   const { data: session } = useSession();
-  const stripeEnabled = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
   const visible = plans
     .filter((p) => p.is_active && p.id !== "unlimited" && p.id !== "custom")
     .sort((a, b) => a.sort_order - b.sort_order);
 
   async function handleCheckout(plan: PlanItem) {
-    if (!stripeEnabled) return;
-
     if (!session) {
       signIn("keycloak", { callbackUrl: "/account/billing" });
       return;
@@ -187,7 +184,7 @@ export default function PricingTable({ plans }: Props) {
               >
                 Herunterladen
               </a>
-            ) : plan.price_eur !== null && stripeEnabled ? (
+            ) : plan.price_eur !== null && Boolean(plan.stripe_price_id) ? (
               <button
                 className="btn"
                 onClick={() => handleCheckout(plan)}
