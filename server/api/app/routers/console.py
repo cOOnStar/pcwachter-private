@@ -780,6 +780,7 @@ def ui_activity_feed(
 @router.get("/ui/knowledge-base")
 def ui_knowledge_base(
     search: str | None = Query(default=None, max_length=200),
+    category: str | None = Query(default=None, max_length=64),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -787,6 +788,9 @@ def ui_knowledge_base(
 ):
     """Return published KB articles with optional full-text search on title/body."""
     q = select(KbArticle).where(KbArticle.published == True)  # noqa: E712
+
+    if category and category.strip():
+        q = q.where(KbArticle.category.ilike(category.strip()))
 
     if search and search.strip():
         term = f"%{search.strip()}%"
@@ -1780,45 +1784,6 @@ def ui_server_services(
         return {"items": services, "total": len(services)}
     except Exception as e:
         return {"items": [], "total": 0, "error": str(e)}
-
-
-# ---------------------------------------------------------------------------
-# Knowledge Base (statische Artikel)
-# ---------------------------------------------------------------------------
-
-_KB_ARTICLES = [
-    {"id": "kb-1", "category": "Lizenzen",     "title": "Lizenzschlüssel aktivieren",         "summary": "Anleitung zur Aktivierung eines PCWächter-Lizenzschlüssels auf einem Gerät.",              "tags": ["lizenz", "aktivierung", "agent"]},
-    {"id": "kb-2", "category": "Installation", "title": "PCWächter Agent installieren",        "summary": "Schritt-für-Schritt Anleitung zur Installation des PCWächter Agents auf Windows.",         "tags": ["agent", "installation", "windows"]},
-    {"id": "kb-3", "category": "Telemetrie",   "title": "Telemetrie-Kategorien erklärt",       "summary": "Übersicht der Kategorien: memory, ssd, antivirus, update und ihre Bedeutung.",             "tags": ["telemetrie", "kategorien", "memory", "ssd"]},
-    {"id": "kb-4", "category": "Verwaltung",   "title": "Benutzerrollen verwalten",            "summary": "Wie man Benutzern Rollen zuweist (Owner, Admin, User) und was diese Rollen erlauben.",     "tags": ["rollen", "benutzer", "keycloak", "rechte"]},
-    {"id": "kb-5", "category": "Lizenzen",     "title": "Lizenzpläne anpassen",                "summary": "Preise und Laufzeiten der Lizenzpläne live ändern ohne Code-Deployment.",                  "tags": ["pläne", "preise", "laufzeit", "admin"]},
-    {"id": "kb-6", "category": "Geräte",       "title": "Gerät aus der Verwaltung entfernen",  "summary": "So entfernt man ein Gerät vollständig aus dem PCWächter-System.",                          "tags": ["gerät", "entfernen", "delete"]},
-    {"id": "kb-7", "category": "Server",       "title": "Server-Health überwachen",            "summary": "Übersicht der Server-Metriken: CPU, RAM, Festplatte und Docker-Container-Status.",         "tags": ["server", "health", "monitoring", "docker"]},
-    {"id": "kb-8", "category": "Sicherheit",   "title": "Audit-Log verstehen",                 "summary": "Was wird im Audit-Log protokolliert und wie liest man die Einträge richtig.",              "tags": ["audit", "sicherheit", "protokoll", "log"]},
-    {"id": "kb-9", "category": "Lizenzen",     "title": "Trial-Lizenzen verwalten",            "summary": "Testlizenzen (7 Tage) ausstellen, verlängern oder in bezahlte Pläne umwandeln.",          "tags": ["trial", "testversion", "lizenz", "upgrade"]},
-    {"id": "kb-10","category": "Geräte",       "title": "Online-Status eines Geräts prüfen",   "summary": "Wann gilt ein Gerät als online? Schwellwert und Heartbeat-Logik erklärt.",                 "tags": ["online", "heartbeat", "status", "gerät"]},
-]
-
-
-@router.get("/ui/knowledge-base")
-def ui_knowledge_base(
-    search: str | None = Query(default=None),
-    category: str | None = Query(default=None),
-    _user: dict = Depends(require_console_user),
-):
-    articles = _KB_ARTICLES
-
-    if category:
-        articles = [a for a in articles if a["category"].lower() == category.strip().lower()]
-
-    if search:
-        q = search.strip().lower()
-        articles = [
-            a for a in articles
-            if q in a["title"].lower() or q in a["summary"].lower() or any(q in t for t in a["tags"])
-        ]
-
-    return {"items": articles, "total": len(articles)}
 
 
 # ---------------------------------------------------------------------------

@@ -11,8 +11,13 @@ const OFFLINE_NAME = "PCWaechter_offline_installer.exe";
 const LIVE_NAME    = "PCWaechter_live_installer.exe";
 
 interface InstallerManifest {
-  version: string;
-  installer: {
+  // API shape (UpdateManifestEnvelope)
+  latest_version?: string;
+  download_url?: string;
+  sha256?: string;
+  // GitHub release manifest shape (legacy fallback)
+  version?: string;
+  installer?: {
     url: string;
     sha256: string;
     silentArgs?: string;
@@ -29,10 +34,21 @@ export default function DownloadPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${RELEASE_BASE}/installer-manifest.json`)
+    // Try API first, fall back to GitHub release manifest
+    fetch("/api/updates/latest?component=desktop&channel=stable")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setManifest(data))
-      .catch(() => null);
+      .then((data) => {
+        if (data) { setManifest(data); return; }
+        return fetch(`${RELEASE_BASE}/installer-manifest.json`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => setManifest(d));
+      })
+      .catch(() =>
+        fetch(`${RELEASE_BASE}/installer-manifest.json`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => setManifest(d))
+          .catch(() => null)
+      );
   }, []);
 
   function copyToClipboard(text: string, key: string) {
@@ -69,7 +85,7 @@ export default function DownloadPage() {
             fontSize: "0.875rem",
           }}
         >
-          <strong>Version {manifest.version}</strong>
+          <strong>Version {manifest.latest_version ?? manifest.version}</strong>
         </div>
       )}
 
@@ -96,14 +112,14 @@ export default function DownloadPage() {
           >
             {OFFLINE_NAME} herunterladen
           </a>
-          {manifest?.installer.sha256 && (
+          {(manifest?.sha256 ?? manifest?.installer?.sha256) && (
             <div style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
               SHA-256:{" "}
               <code style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-                {manifest.installer.sha256}
+                {manifest.sha256 ?? manifest.installer?.sha256}
               </code>{" "}
               <button
-                onClick={() => copyToClipboard(manifest.installer.sha256, "offline")}
+                onClick={() => copyToClipboard((manifest.sha256 ?? manifest.installer?.sha256)!, "offline")}
                 style={{
                   background: "none",
                   border: "1px solid var(--border)",
