@@ -1,0 +1,4 @@
+﻿"Table","Field","Target","Config"
+"device_inventory","device","""Device""","back_populates=""inventories"""
+"subscriptions","license","""License | None""","""License"", foreign_keys=[license_id]"
+"telemetry_snapshots","device","""Device""","back_populates=""telemetry_snapshots"""

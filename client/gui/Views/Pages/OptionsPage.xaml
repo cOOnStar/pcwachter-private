@@ -1,0 +1,306 @@
+﻿<UserControl x:Class="PCWachter.Desktop.Views.Pages.OptionsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PCWachter.Desktop.Views.Controls">
+    <UserControl.Resources>
+        <Style x:Key="OptionsLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,12,10"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="OptionsSaveBadgeStyle" TargetType="Border" BasedOn="{StaticResource StatusBadgeGood}">
+            <Setter Property="Padding" Value="10,4"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveStatusIsError}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="OptionsSaveBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+            <Setter Property="Foreground" Value="{DynamicResource StatusGoodBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SaveStatusIsError}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="OptionsSkeletonBlockStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Background" Value="{DynamicResource SkeletonBaseBrush}"/>
+            <Setter Property="Opacity" Value="0.58"/>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                    <BeginStoryboard>
+                        <Storyboard AutoReverse="True" RepeatBehavior="Forever">
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0.42"
+                                             To="0.82"
+                                             Duration="0:0:0.9"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding DataContext.IsConnectingToService, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+            <StackPanel>
+            <controls:SectionHeaderControl Title="Optionen" Subtitle="Auto-Fix Richtlinien, Ausfuehrungsgrenzen und Datenquelle." />
+
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <controls:StatCardControl Title="Auto-Fix Modus" Value="{Binding AutoFixModeLabel}" Subtitle="Aktive Strategie"/>
+                <controls:StatCardControl Grid.Column="2" Title="Fixes / Tag" Value="{Binding MaxFixesPerDay}" Subtitle="Limit"/>
+                <controls:StatCardControl Grid.Column="4" Title="Scanintervall" Value="{Binding ScanIntervalMinutes}" Subtitle="Minuten"/>
+                <controls:StatCardControl Grid.Column="6" Title="Datenquelle" Value="{Binding DataSourceLabel}" Subtitle="Live oder Demo"/>
+            </Grid>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Auto-Fix Richtlinie" Style="{StaticResource H2}" FontSize="18"/>
+                    <TextBlock Text="Diese Parameter steuern, wie oft und unter welchen Bedingungen Fixes automatisch laufen."
+                               Style="{StaticResource BodyStyle}"
+                               Margin="0,4,0,0"/>
+                    <Border Style="{StaticResource SoftLine}" Margin="0,10,0,8"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="250" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Auto-Fix Modus" Style="{StaticResource OptionsLabelStyle}" />
+                        <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Width="240" ItemsSource="{Binding Modes}" SelectedItem="{Binding SelectedMode}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Max Fixes pro Tag" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding MaxFixesPerDay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Cooldown (Stunden)" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding CooldownHours, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Scanintervall (Minuten)" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4" Width="120" Text="{Binding ScanIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Regel-Schwellenwerte" Style="{StaticResource H2}" FontSize="18"/>
+                    <TextBlock Text="Steuert, ab wann Findings als Warnung oder kritisch markiert werden."
+                               Style="{StaticResource BodyStyle}"
+                               Margin="0,4,0,0"/>
+                    <Border Style="{StaticResource SoftLine}" Margin="0,10,0,8"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="250" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Speicher kritisch unter (%)" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding StorageCriticalPercentFree, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Speicher Warnung unter (%)" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding StorageWarningPercentFree, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Eventlog Warnung über (24h)" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding EventLogWarningCount24h, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Defender Warnung ab Tagen" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,10" Width="120" Text="{Binding DefenderSignatureWarningDays, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Defender kritisch ab Tagen" Style="{StaticResource OptionsLabelStyle}" />
+                        <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,4" Width="120" Text="{Binding DefenderSignatureCriticalDays, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Baseline + Drift-Erkennung" Style="{StaticResource H2}" FontSize="18"/>
+                    <TextBlock Text="{Binding BaselineStatusText}" Margin="0,6,0,0" Style="{StaticResource BodyStyle}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding BaselineDriftText}" Margin="0,4,0,0" Style="{StaticResource Small}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+
+                    <Button Margin="0,10,0,0" MinWidth="170" Command="{Binding CreateBaselineCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                                <Setter Property="Content" Value="Aktuelle Baseline speichern"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CreateBaselineCommand.IsRunning}" Value="True">
+                                        <Setter Property="Content" Value="Speichere Baseline..."/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                <StackPanel>
+                    <TextBlock Text="Ausfuehrungsbedingungen" Style="{StaticResource H2}" FontSize="18"/>
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding ExecutionGateLabel, StringFormat=Aktive Bedingungen: {0}}"
+                               Style="{StaticResource BodyStyle}"/>
+
+                    <CheckBox Margin="0,10,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              IsChecked="{Binding RequireNetwork}"
+                              Content="Nur mit Netzwerkverbindung ausfuehren" />
+                    <CheckBox Margin="0,8,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              IsChecked="{Binding RequireAcPower}"
+                              Content="Nur bei Netzstrom ausfuehren" />
+
+                    <Border Style="{StaticResource SoftLine}" Margin="0,10,0,8"/>
+
+                    <TextBlock Text="Darstellung und Datenquelle" Style="{StaticResource H2}" FontSize="18"/>
+                    <CheckBox Margin="0,10,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              IsChecked="{Binding IsAutomaticUpdatesEnabled}"
+                              Content="Automatische Updates vor Programmstart installieren" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding AutomaticUpdateHint}"
+                               Style="{StaticResource BodyStyle}"
+                               TextWrapping="Wrap" />
+
+                    <CheckBox Margin="0,10,0,0"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              IsChecked="{Binding IsDemoMode}"
+                              Content="Demo-Modus (Testdaten verwenden)" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding DemoModeHint}"
+                               Style="{StaticResource BodyStyle}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" MinWidth="140" Command="{Binding SaveCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                                <Setter Property="Content" Value="Speichern"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SaveCommand.IsRunning}" Value="True">
+                                        <Setter Property="Content" Value="Speichere..."/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Border Grid.Column="2"
+                            Style="{StaticResource OptionsSaveBadgeStyle}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left"
+                            Visibility="{Binding HasSaveStatus, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{Binding SaveStatus}" Style="{StaticResource OptionsSaveBadgeTextStyle}"/>
+                    </Border>
+                </Grid>
+            </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                      IsHitTestVisible="False"
+                      Visibility="{Binding DataContext.IsConnectingToService, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel>
+                <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="88"/>
+
+                <Grid Margin="0,12,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="82"/>
+                    <Border Grid.Column="2" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="82"/>
+                    <Border Grid.Column="4" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="82"/>
+                    <Border Grid.Column="6" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="82"/>
+                </Grid>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="22" Width="220"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="12" Width="420" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="1" Margin="0,10,0,8"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="22" Width="210"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="12" Width="390" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="1" Margin="0,10,0,8"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="26" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="20" Width="190"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="12" Width="420" Margin="0,8,0,0"/>
+                        <Border Style="{StaticResource OptionsSkeletonBlockStyle}" Height="34" Width="220" Margin="0,12,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="260"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="34"/>
+                        <Border Grid.Column="2" Style="{StaticResource OptionsSkeletonBlockStyle}" Height="22" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

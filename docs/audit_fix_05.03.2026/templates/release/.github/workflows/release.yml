@@ -1,0 +1,45 @@
+name: Release Installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.2.3)'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Build offline installer (Inno/NSIS) from your build pipeline output
+      # - name: Build Offline Installer
+      #   run: ...
+
+      # TODO: Build live installer bootstrapper
+      # - name: Build Live Installer
+      #   run: ...
+
+      - name: Generate installer-manifest.json
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { $version = "${{ inputs.version }}" }
+          # TODO: compute sha256 + sizes and write installer-manifest.json
+          Copy-Item installer-manifest.sample.json installer-manifest.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            installer-manifest.json
+            PCWaechter-Offline-Setup.exe
+            PCWaechter-Live-Installer.exe

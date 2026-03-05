@@ -1,0 +1,22 @@
+# PCWächter Logo Platzhalter
+
+Diese Datei ist ein Platzhalter für das PCWächter Logo.
+
+## Installation
+
+Ersetzen Sie diese Datei durch Ihr echtes Logo:
+
+1. **Dateiname:** `logo.png` (oder `logo.svg`)
+2. **Pfad:** `/opt/keycloak/themes/pcwaechter/login/resources/img/logo.png`
+3. **Empfohlene Größe:** 200x200px (oder größer für Retina-Displays)
+4. **Format:** PNG, SVG oder JPG
+
+## Verwendung im Theme
+
+Das Logo wird in allen FTL-Dateien wie folgt referenziert:
+
+```html
+<img src="${url.resourcesPath}/img/logo.png" alt="PCWächter Logo" class="kc-logo-img" />
+```
+
+**Wichtig:** Verwenden Sie NIEMALS `figma:asset` Referenzen in Keycloak Themes!

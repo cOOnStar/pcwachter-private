@@ -1,0 +1,8 @@
+﻿"Table","Type","Definition"
+"device_inventory","UNIQUE","""device_id"", ""collected_at"", name=""uq_device_inventory_device_collected"""
+"feature_overrides","CHECK","""(scope = 'global' AND target_id IS NULL"
+"feature_overrides","INDEX","""ix_fo_scope_target"", ""scope"", ""target_id"""
+"telemetry_snapshots","INDEX","""ix_telemetry_snapshots_device_category_received_desc"",
+            ""device_id"",
+            ""category"",
+            received_at.desc("

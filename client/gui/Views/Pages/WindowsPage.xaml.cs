@@ -1,0 +1,11 @@
+using System.Windows.Controls;
+
+namespace PCWachter.Desktop.Views.Pages;
+
+public partial class WindowsPage : UserControl
+{
+    public WindowsPage()
+    {
+        InitializeComponent();
+    }
+}

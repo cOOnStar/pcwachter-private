@@ -1,0 +1,135 @@
+﻿<UserControl x:Class="PCWachter.Desktop.Views.Controls.FindingCardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PCWachter.Desktop.ViewModels"
+             x:Name="Root">
+    <UserControl.Resources>
+        <Style x:Key="FindingBadgeStyle" TargetType="Border" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="{DynamicResource StatusInfoBgBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                    <Setter Property="Background" Value="{DynamicResource StatusWarnBgBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                    <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FindingBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+            <Setter Property="Foreground" Value="{DynamicResource StatusInfoBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusWarnBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Ellipse Width="10" Height="10" Margin="0,6,10,0"
+                     VerticalAlignment="Top"
+                     Fill="{Binding Finding.Severity, Converter={StaticResource SeverityToBrushConverter}}"/>
+
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="{Binding Title}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding Summary}" Margin="0,4,0,0" Style="{StaticResource BodyStyle}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding CriticalityHint}"
+                           Margin="0,4,0,0"
+                           Style="{StaticResource Small}"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           TextWrapping="Wrap"/>
+                <Border Style="{StaticResource FindingBadgeStyle}"
+                        HorizontalAlignment="Left"
+                        Margin="0,6,0,0"
+                        Visibility="{Binding BadgeText, Converter={StaticResource StringToVisibilityConverter}}">
+                    <TextBlock Text="{Binding BadgeText}" Style="{StaticResource FindingBadgeTextStyle}" TextWrapping="Wrap"/>
+                </Border>
+                <TextBlock Text="{Binding TimelineText}" Margin="0,4,0,0" Style="{StaticResource Small}" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <WrapPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0" ItemHeight="34">
+                <Button Margin="0,0,6,6"
+                        MinWidth="98"
+                        Command="{Binding OpenDetailsCommand}"
+                        AutomationProperties.Name="{Binding Title, StringFormat=Details zu Problem: {0}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                            <Setter Property="Content" Value="Details"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding OpenDetailsCommand.IsRunning}" Value="True">
+                                    <Setter Property="Content" Value="&#214;ffne..."/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button Margin="0,0,6,6"
+                        MinWidth="108"
+                        Command="{Binding RunBestFixCommand}"
+                        AutomationProperties.Name="{Binding Title, StringFormat=Problem beheben: {0}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+                            <Setter Property="Content" Value="Beheben"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RunBestFixCommand.IsRunning}" Value="True">
+                                    <Setter Property="Content" Value="Behebe..."/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button Margin="0,0,6,6"
+                        MinWidth="122"
+                        Command="{Binding SnoozeCommand}"
+                        AutomationProperties.Name="{Binding Title, StringFormat=Problem 7 Tage pausieren: {0}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                            <Setter Property="Content" Value="Snooze 7 Tage"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SnoozeCommand.IsRunning}" Value="True">
+                                    <Setter Property="Content" Value="Pausiere..."/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button Margin="0,0,0,6"
+                        MinWidth="108"
+                        Command="{Binding IgnoreCommand}"
+                        AutomationProperties.Name="{Binding Title, StringFormat=Problem ignorieren: {0}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+                            <Setter Property="Content" Value="Ignorieren"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IgnoreCommand.IsRunning}" Value="True">
+                                    <Setter Property="Content" Value="Ignoriere..."/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </WrapPanel>
+        </Grid>
+    </Border>
+</UserControl>

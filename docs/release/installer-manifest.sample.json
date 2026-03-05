@@ -1,0 +1,17 @@
+{
+  "version": "0.0.76",
+  "installer": {
+    "url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/latest/download/PCWaechter_offline_installer.exe",
+    "sha256": "<FILL_SHA256_OF_OFFLINE_INSTALLER>",
+    "silentArgs": "/S"
+  },
+  "bootstrapper": {
+    "version": "0.0.76",
+    "url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/latest/download/PCWaechter_live_installer.exe",
+    "sha256": "<FILL_SHA256_OF_LIVE_INSTALLER>"
+  },
+  "runtime": {
+    "enabled": true,
+    "minVersion": "10.0"
+  }
+}

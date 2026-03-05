@@ -1,0 +1,8 @@
+{
+  "version": "0.0.0",
+  "installer": {
+    "url": "https://github.com/<user>/pcwaechter-public-release/releases/download/v0.0.0/PCWaechter_offline_installer.exe",
+    "sha256": "PUT_SHA256_OF_INSTALLER_HERE",
+    "silentArgs": "/S"
+  }
+}

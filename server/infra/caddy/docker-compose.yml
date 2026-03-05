@@ -1,0 +1,27 @@
+services:
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: pcwaechter-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 QUIC
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    restart: unless-stopped
+
+networks:
+  default:
+    name: ${DOCKER_NETWORK_NAME:-pcwaechter-infra}
+    external: true
+
+volumes:
+  caddy_data:
+    name: pcwaechter-caddy-data
+  caddy_config:
+    name: pcwaechter-caddy-config
+  caddy_logs:
+    name: pcwaechter-caddy-logs

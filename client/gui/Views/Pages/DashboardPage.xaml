@@ -1,0 +1,918 @@
+<UserControl x:Class="PCWachter.Desktop.Views.Pages.DashboardPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+
+  <UserControl.Resources>
+    <Style x:Key="DashboardFeedbackStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStyle}">
+      <Setter Property="Foreground" Value="{DynamicResource StatusGoodBrush}"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding ScanFeedbackIsError}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardSeverityBadgeStyle" TargetType="Border" BasedOn="{StaticResource Badge}">
+      <Setter Property="Background" Value="{DynamicResource StatusInfoBgBrush}"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Severity}" Value="Warning">
+          <Setter Property="Background" Value="{DynamicResource StatusWarnBgBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Severity}" Value="Critical">
+          <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardSeverityTextStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+      <Setter Property="Foreground" Value="{DynamicResource StatusInfoBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Severity}" Value="Warning">
+          <Setter Property="Foreground" Value="{DynamicResource StatusWarnBrush}"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Severity}" Value="Critical">
+          <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardHealthTrendDeltaStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+      <Setter Property="Foreground" Value="{DynamicResource StatusGoodBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsHealthTrendPositive}" Value="False">
+          <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardMonthlyDeltaStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+      <Setter Property="Foreground" Value="{DynamicResource StatusGoodBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsMonthlyTrendPositive}" Value="False">
+          <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardAutoFixBadgeStyle" TargetType="Border">
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource StatusCritBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding AutoFixResultSuccess}" Value="True">
+          <Setter Property="Background" Value="{DynamicResource StatusGoodBgBrush}"/>
+          <Setter Property="BorderBrush" Value="{DynamicResource StatusGoodBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardAutoFixBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+      <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding AutoFixResultSuccess}" Value="True">
+          <Setter Property="Foreground" Value="{DynamicResource StatusGoodBrush}"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DashboardFilterToggleStyle" TargetType="ToggleButton">
+      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="Background" Value="#243247"/>
+      <Setter Property="BorderBrush" Value="#3D4A61"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="Root"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="6">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#2B3D56"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#2E6DB8"/>
+                <Setter TargetName="Root" Property="BorderBrush" Value="#69A8F5"/>
+                <Setter Property="Foreground" Value="#F1F7FF"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="DashboardSkeletonBlockStyle" TargetType="Border">
+      <Setter Property="Height" Value="14"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Background" Value="{DynamicResource SkeletonBaseBrush}"/>
+      <Setter Property="Opacity" Value="0.6"/>
+      <Style.Triggers>
+        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+          <BeginStoryboard>
+            <Storyboard AutoReverse="True" RepeatBehavior="Forever">
+              <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                               From="0.45"
+                               To="0.82"
+                               Duration="0:0:0.85"/>
+            </Storyboard>
+          </BeginStoryboard>
+        </EventTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid Margin="0,0,0,14">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="194"/>
+        <RowDefinition Height="16"/>
+        <RowDefinition Height="230"/>
+        <RowDefinition Height="14"/>
+        <RowDefinition Height="174"/>
+        <RowDefinition Height="14"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0"
+              CornerRadius="12"
+              Background="{DynamicResource DashboardHeroGradientBrush}"
+              BorderBrush="#446BA1"
+              BorderThickness="1"
+              AutomationProperties.Name="Willkommensbereich">
+        <Grid Margin="32,0,20,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="410"/>
+          </Grid.ColumnDefinitions>
+
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Willkommen beim PCW&#228;chter"
+                       FontSize="26"
+                       FontWeight="Bold"
+                       Foreground="White"/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+              <Border Width="26" Height="26" CornerRadius="13" Background="#4CA0FF">
+                <TextBlock Text="&#xE73E;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="White"/>
+              </Border>
+              <TextBlock Text="Ihr PC wird &#252;berwacht und gesch&#252;tzt."
+                         Margin="10,0,0,0"
+                         FontSize="15"
+                         Foreground="#E9F3FF"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+          </StackPanel>
+
+          <Viewbox Grid.Column="1" Height="168" VerticalAlignment="Center" HorizontalAlignment="Right" StretchDirection="DownOnly">
+            <Canvas Width="470" Height="180">
+              <Rectangle Width="470" Height="72" RadiusX="10" RadiusY="10" Fill="#206EC6" Canvas.Top="55" Opacity="0.28"/>
+              <Rectangle Width="170" Height="98" RadiusX="7" RadiusY="7" Fill="#1D2D45" Stroke="#4C5D74" StrokeThickness="2" Canvas.Left="142" Canvas.Top="14"/>
+              <Rectangle Width="150" Height="74" Fill="#11223D" Canvas.Left="152" Canvas.Top="24"/>
+              <Path Fill="#D1D8E4" Data="M 118,114 L 342,114 L 369,138 L 92,138 Z"/>
+              <Path Fill="#AEB7C8" Data="M 216,130 L 244,130 L 250,136 L 210,136 Z"/>
+              <Path Fill="#9ED4FF" Stroke="#D2E7FF" StrokeThickness="1.5" Data="M 307,18 L 355,35 L 351,105 C 338,124 323,136 307,144 C 291,136 276,124 263,105 L 259,35 Z"/>
+              <Path Stroke="#EFF8FF" StrokeThickness="7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 284,74 L 301,90 L 334,57"/>
+            </Canvas>
+          </Viewbox>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="0"
+              VerticalAlignment="Bottom"
+              Margin="24,0,24,12"
+              Padding="12,8"
+              CornerRadius="10"
+              Background="{DynamicResource StatusInfoBgBrush}"
+              BorderBrush="{DynamicResource StatusInfoBrush}"
+              BorderThickness="1"
+              Visibility="{Binding ShowDashboardLoadingState, Converter={StaticResource BoolToVisibilityConverter}}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource StatusInfoBrush}" VerticalAlignment="Center"/>
+          <TextBlock Text="Scan läuft. Dashboard-Daten werden aktualisiert."
+                     Margin="8,0,0,0"
+                     Style="{StaticResource BodyStyle}"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="0"
+              VerticalAlignment="Bottom"
+              Margin="24,0,24,12"
+              Padding="12,8"
+              CornerRadius="10"
+              Background="{DynamicResource StatusCritBgBrush}"
+              BorderBrush="{DynamicResource StatusCritBrush}"
+              BorderThickness="1"
+              Visibility="{Binding ShowDashboardErrorState, Converter={StaticResource BoolToVisibilityConverter}}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xEA39;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource StatusCritBrush}" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding DashboardErrorText}"
+                     Margin="8,0,0,0"
+                     Style="{StaticResource BodyStyle}"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="0"
+              VerticalAlignment="Bottom"
+              Margin="24,0,24,12"
+              Padding="12,8"
+              CornerRadius="10"
+              Background="{DynamicResource StatusGoodBgBrush}"
+              BorderBrush="{DynamicResource StatusGoodBrush}"
+              BorderThickness="1"
+              Visibility="{Binding ShowDashboardEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource StatusGoodBrush}" VerticalAlignment="Center"/>
+          <TextBlock Text="Keine offenen Probleme gefunden. Ihr System sieht aktuell gut aus."
+                     Margin="8,0,0,0"
+                     Style="{StaticResource BodyStyle}"
+                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+        </StackPanel>
+      </Border>
+
+      <Grid Grid.Row="2">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="2.2*"/>
+          <ColumnDefinition Width="16"/>
+          <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Style="{StaticResource DashboardCardStyle}"
+                AutomationProperties.Name="Gesundheitswertkarte"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Gesundheitswert" Style="{StaticResource H2}"/>
+
+            <Grid Grid.Row="1">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+
+              <Canvas Width="260" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="Gesundheitsanzeige">
+                <Path Stroke="#2B3546" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 24,128 A 88,88 0 0 1 236,128"/>
+                <Path Stroke="#2891F2" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 24,128 A 88,88 0 0 1 68,56"/>
+                <Path Stroke="#3AC1FB" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 72,53 A 88,88 0 0 1 133,38"/>
+                <Path Stroke="#93EB9A" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 137,38 A 88,88 0 0 1 198,66"/>
+                <Path Stroke="#FF8E39" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 200,69 A 88,88 0 0 1 236,128"/>
+
+                <TextBlock Canvas.Left="96" Canvas.Top="56" Text="{Binding HealthScore}" FontSize="62" FontWeight="Bold" Foreground="#F4F8FF"/>
+                <TextBlock Canvas.Left="96" Canvas.Top="112" Text="{Binding HealthScoreLabel}" FontSize="20" FontWeight="SemiBold" Foreground="#F5F9FF"/>
+              </Canvas>
+
+              <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="10"/>
+                  <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Ein sehr guter Gesamtzustand mit wenigen offenen Risiken."
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                <Border Grid.Row="2"
+                        CornerRadius="8"
+                        Background="#172336"
+                        BorderBrush="#2E3C55"
+                        BorderThickness="1"
+                        Padding="10,9">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto"/>
+                      <RowDefinition Height="Auto"/>
+                      <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Gesundheitstrend (7/30 Tage)"
+                               Style="{StaticResource Small}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                    <Canvas Grid.Row="1" Height="56" Margin="0,7,0,6">
+                      <Polyline Points="{Binding HealthTrendPoints}"
+                                Stroke="#59AEFF"
+                                StrokeThickness="2.4"
+                                StrokeLineJoin="Round"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"/>
+                    </Canvas>
+
+                    <Grid Grid.Row="2">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding HealthTrend7AverageText, StringFormat=7T: {0}}"
+                                 Style="{StaticResource Small}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"/>
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding HealthTrend30AverageText, StringFormat=30T: {0}}"
+                                 Style="{StaticResource Small}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 TextAlignment="Center"/>
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding HealthTrendDeltaText, StringFormat=Delta: {0}}"
+                                 Style="{StaticResource DashboardHealthTrendDeltaStyle}"
+                                 TextAlignment="Right"/>
+                    </Grid>
+                  </Grid>
+                </Border>
+              </Grid>
+            </Grid>
+
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+              <Button Style="{StaticResource DashboardPrimaryActionButtonStyle}"
+                      MinWidth="250"
+                      Command="{Binding TriggerScanCommand}"
+                      AutomationProperties.Name="Jetzt scannen"
+                      ToolTip="Neuen Systemscan starten">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE72C;" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding ScanActionButtonText}" FontSize="15" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+
+              <Button Style="{StaticResource DashboardPrimaryActionButtonStyle}"
+                      Margin="10,0,0,0"
+                      MinWidth="250"
+                      Command="{Binding RunMaintenanceCommand}"
+                      AutomationProperties.Name="Jetzt optimieren"
+                      ToolTip="Sichere Wartung mit Defender, Firewall, Updates und Cleanup">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE7AC;" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding MaintenanceActionButtonText}" FontSize="15" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+
+              <Button Style="{StaticResource DashboardSecondaryActionButtonStyle}"
+                      Margin="10,0,0,0"
+                      MinWidth="280"
+                      Command="{Binding OpenOptionsCommand}"
+                      AutomationProperties.Name="Auto-Fix Einstellungen"
+                      ToolTip="Optionen zur automatischen Behebung">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                  <TextBlock Text="Auto-Fix Einstellungen" FontSize="15" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <TextBlock Grid.Row="3"
+                       Margin="0,8,0,0"
+                       Style="{StaticResource DashboardFeedbackStyle}"
+                       Text="{Binding ScanFeedbackText}"
+                       Visibility="{Binding HasScanFeedback, Converter={StaticResource BoolToVisibilityConverter}}"
+                       AutomationProperties.LiveSetting="Polite"/>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="2"
+                Style="{StaticResource DashboardCardStyle}"
+                AutomationProperties.Name="System&#252;bersicht"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <StackPanel>
+            <TextBlock Text="System&#252;bersicht" Style="{StaticResource H2}"/>
+            <Border Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,12,0,14"/>
+
+            <Grid Margin="0,0,0,12">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="26"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Style="{StaticResource DashboardMdlIconSmallStyle}" Text="&#xE7F8;"/>
+              <TextBlock Grid.Column="1" Text="{Binding DeviceSummary, StringFormat=Ger&#228;t: {0}}" Style="{StaticResource BodyStyle}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,12">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="26"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Style="{StaticResource DashboardMdlIconSmallStyle}" Text="&#xE823;"/>
+              <TextBlock Grid.Column="1" Text="{Binding LastScanText, StringFormat=Letzter Scan: {0}}" Style="{StaticResource BodyStyle}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+            </Grid>
+
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="26"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Style="{StaticResource DashboardMdlIconSmallStyle}" Text="&#xE8D7;"/>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding AllFindings.Count, StringFormat=Offene Probleme: {0}}"
+                         Style="{StaticResource BodyStyle}"
+                         Foreground="{DynamicResource TextPrimaryBrush}"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid Grid.Row="4">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="2.2*"/>
+          <ColumnDefinition Width="16"/>
+          <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Style="{StaticResource DashboardCardStyle}"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="12"/>
+              <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Top 3 Probleme" Style="{StaticResource H2}"/>
+
+            <Grid Grid.Row="2">
+              <ItemsControl ItemsSource="{Binding TopFindings}"
+                            Visibility="{Binding HasTopFindings, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <UniformGrid Columns="3"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemContainerStyle>
+                  <Style TargetType="ContentPresenter">
+                    <Setter Property="Margin" Value="0,0,10,0"/>
+                  </Style>
+                </ItemsControl.ItemContainerStyle>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Style="{StaticResource DashboardIssueTileStyle}">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                          <Border Width="26" Height="26" CornerRadius="8" Background="{Binding Severity, Converter={StaticResource SeverityToBrushConverter}}">
+                            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                          </Border>
+                          <TextBlock Text="{Binding Title}"
+                                     TextWrapping="Wrap"
+                                     Margin="10,0,0,0"
+                                     Style="{StaticResource BodyStyle}"
+                                     FontWeight="SemiBold"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"/>
+                        </StackPanel>
+
+                        <Border Style="{StaticResource DashboardSeverityBadgeStyle}"
+                                HorizontalAlignment="Left"
+                                Margin="0,11,0,0"
+                                Visibility="{Binding BadgeText, Converter={StaticResource StringToVisibilityConverter}}">
+                          <TextBlock Text="{Binding BadgeText}" Style="{StaticResource DashboardSeverityTextStyle}" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <TextBlock Text="{Binding TimelineText}"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource Small}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Border Style="{StaticResource DashboardIssueTileStyle}"
+                      Visibility="{Binding HasTopFindings, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource StatusGoodBrush}" HorizontalAlignment="Center"/>
+                  <TextBlock Text="Keine priorisierten Probleme vorhanden."
+                             Margin="0,8,0,0"
+                             Style="{StaticResource BodyStyle}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             TextAlignment="Center"
+                             TextWrapping="Wrap"/>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="2"
+                Style="{StaticResource DashboardCardStyle}"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <StackPanel>
+            <TextBlock Text="K&#252;rzlich behoben" Style="{StaticResource H2}"/>
+            <Border Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,12,0,12"/>
+
+            <ItemsControl ItemsSource="{Binding RecentlyResolved}"
+                          Visibility="{Binding HasRecentlyResolved, Converter={StaticResource BoolToVisibilityConverter}}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="24"/>
+                      <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource DashboardMdlIconSmallStyle}" Text="&#xE73E;" FontSize="14" Foreground="{DynamicResource StatusGoodBrush}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource BodyStyle}" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Style="{StaticResource DashboardIssueTileStyle}"
+                    Visibility="{Binding HasRecentlyResolved, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="18" Foreground="{DynamicResource StatusInfoBrush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Noch keine kuerzlich behobenen Probleme."
+                           Margin="0,8,0,0"
+                           Style="{StaticResource BodyStyle}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid Grid.Row="6">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="2.2*"/>
+          <ColumnDefinition Width="16"/>
+          <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0"
+                Style="{StaticResource DashboardCardStyle}"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="10"/>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Alle Probleme" Style="{StaticResource H2}"/>
+            <Border Grid.Row="1" Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,9,0,0"/>
+
+            <WrapPanel Grid.Row="2" Margin="0,8,0,0">
+              <ToggleButton Style="{StaticResource DashboardFilterToggleStyle}"
+                            Content="{Binding FindingFilterAllLabel}"
+                            IsChecked="{Binding IsFindingFilterAllSelected, Mode=OneWay}"
+                            Command="{Binding SetFindingFilterCommand}"
+                            CommandParameter="all"/>
+              <ToggleButton Style="{StaticResource DashboardFilterToggleStyle}"
+                            Content="{Binding FindingFilterCriticalLabel}"
+                            IsChecked="{Binding IsFindingFilterCriticalSelected, Mode=OneWay}"
+                            Command="{Binding SetFindingFilterCommand}"
+                            CommandParameter="critical"/>
+              <ToggleButton Style="{StaticResource DashboardFilterToggleStyle}"
+                            Content="{Binding FindingFilterWarningLabel}"
+                            IsChecked="{Binding IsFindingFilterWarningSelected, Mode=OneWay}"
+                            Command="{Binding SetFindingFilterCommand}"
+                            CommandParameter="warning"/>
+              <ToggleButton Style="{StaticResource DashboardFilterToggleStyle}"
+                            Content="{Binding FindingFilterInfoLabel}"
+                            IsChecked="{Binding IsFindingFilterInfoSelected, Mode=OneWay}"
+                            Command="{Binding SetFindingFilterCommand}"
+                            CommandParameter="info"/>
+            </WrapPanel>
+
+            <ItemsControl Grid.Row="3"
+                          Margin="0,8,0,0"
+                          ItemsSource="{Binding FilteredAllFindings}"
+                          Visibility="{Binding HasAllFindings, Converter={StaticResource BoolToVisibilityConverter}}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="#253042"
+                          BorderBrush="#3D4A61"
+                          BorderThickness="1"
+                          CornerRadius="7"
+                          Padding="12,10"
+                          Margin="0,0,0,8">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                      </Grid.ColumnDefinitions>
+
+                      <Ellipse Width="12"
+                               Height="12"
+                               VerticalAlignment="Center"
+                               Fill="{Binding Severity, Converter={StaticResource SeverityToBrushConverter}}"/>
+
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Title}"
+                                 Style="{StaticResource BodyStyle}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 TextWrapping="Wrap"
+                                 Margin="6,0,10,0"/>
+
+                      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PriorityText}"
+                                   Style="{StaticResource Small}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <Border Style="{StaticResource DashboardSeverityBadgeStyle}"
+                                Visibility="{Binding BadgeText, Converter={StaticResource StringToVisibilityConverter}}">
+                          <TextBlock Text="{Binding BadgeText}" Style="{StaticResource DashboardSeverityTextStyle}" TextWrapping="Wrap"/>
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Grid.Row="3"
+                    Margin="0,8,0,0"
+                    Style="{StaticResource DashboardIssueTileStyle}"
+                    Visibility="{Binding HasAllFindings, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="&#xE8FB;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource StatusGoodBrush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding AllFindingsEmptyText}"
+                           Margin="0,8,0,0"
+                           Style="{StaticResource BodyStyle}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+
+        <Border Grid.Column="2"
+                Style="{StaticResource DashboardCardStyle}"
+                Visibility="{Binding ShowDashboardCardSkeletons, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}">
+          <StackPanel>
+            <TextBlock Text="Auto-Fix &amp; Monatsreport" Style="{StaticResource H2}"/>
+            <Border Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,12,0,12"/>
+
+            <TextBlock Text="Letztes Auto-Fix Ergebnis"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
+            <Border Style="{StaticResource DashboardAutoFixBadgeStyle}" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding AutoFixResultTitle}" Style="{StaticResource DashboardAutoFixBadgeTextStyle}"/>
+            </Border>
+
+            <TextBlock Margin="0,10,0,0"
+                       Text="{Binding AutoFixResultFinding}"
+                       Style="{StaticResource BodyStyle}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock Margin="0,7,0,0"
+                       Text="{Binding AutoFixResultOutcome}"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock Margin="0,7,0,0"
+                       Text="{Binding AutoFixResultMessage}"
+                       Style="{StaticResource BodyStyle}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock Margin="0,10,0,0"
+                       Text="{Binding AutoFixResultTimeText, StringFormat=Zeitpunkt: {0}}"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
+
+            <Border Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,12,0,12"/>
+
+            <TextBlock Text="Monatsreport Sicherheit"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
+            <TextBlock Margin="0,6,0,0"
+                       Text="{Binding MonthlySummaryText}"
+                       Style="{StaticResource BodyStyle}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextWrapping="Wrap"/>
+
+            <Canvas Height="52" Margin="0,10,0,4">
+              <Polyline Points="{Binding MonthlyTrendPoints}"
+                        Stroke="#59AEFF"
+                        StrokeThickness="2.2"
+                        StrokeLineJoin="Round"
+                        StrokeStartLineCap="Round"
+                        StrokeEndLineCap="Round"/>
+            </Canvas>
+
+            <Grid Margin="0,2,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="{Binding MonthlyScoreDeltaText, StringFormat=Score: {0}}" Style="{StaticResource DashboardMonthlyDeltaStyle}"/>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding MonthlyResolvedText, StringFormat=Behoben: {0}}"
+                         Style="{StaticResource Small}"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         TextAlignment="Center"/>
+              <TextBlock Grid.Column="2"
+                         Text="{Binding MonthlyOpenText, StringFormat=Offen: {0}}"
+                         Style="{StaticResource Small}"
+                         Foreground="{DynamicResource TextSecondaryBrush}"
+                         TextAlignment="Right"/>
+            </Grid>
+
+            <Border Height="1" Background="{DynamicResource BorderSoftBrush}" Margin="0,12,0,12"/>
+
+            <TextBlock Text="Performance Watch"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
+            <TextBlock Margin="0,6,0,0"
+                       Text="{Binding PerformanceSpikesToday, StringFormat=Heutige Lastspitzen: {0}}"
+                       Style="{StaticResource BodyStyle}"
+                       Foreground="{DynamicResource TextPrimaryBrush}"/>
+            <TextBlock Margin="0,4,0,0"
+                       Text="{Binding PerformanceLastCause, StringFormat=Letzte Ursache: {0}}"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Visibility="{Binding HasPerformanceSpikesToday, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBlock Margin="0,2,0,0"
+                       Text="{Binding PerformanceLastValue, StringFormat=Spitzenwert: {0}}"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Visibility="{Binding HasPerformanceSpikesToday, Converter={StaticResource BoolToVisibilityConverter}}"/>
+            <TextBlock Margin="0,4,0,0"
+                       Text="Heute keine relevanten Lastspitzen erkannt."
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"
+                       Visibility="{Binding HasPerformanceSpikesToday, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid Grid.RowSpan="7"
+            Panel.ZIndex="35"
+            IsHitTestVisible="False">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                  <Condition Binding="{Binding ShowDashboardCardSkeletons}" Value="True"/>
+                  <Condition Binding="{Binding DataContext.IsConnectingToService, RelativeSource={RelativeSource AncestorType=Window}}" Value="True"/>
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Visibility" Value="Visible"/>
+              </MultiDataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="194"/>
+          <RowDefinition Height="16"/>
+          <RowDefinition Height="230"/>
+          <RowDefinition Height="14"/>
+          <RowDefinition Height="174"/>
+          <RowDefinition Height="14"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="2">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.2*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="1*"/>
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="190"/>
+              <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="260"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="150" Width="250" HorizontalAlignment="Center"/>
+                <StackPanel Grid.Column="1">
+                  <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="12" Width="260"/>
+                  <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="86" Margin="0,10,0,0"/>
+                </StackPanel>
+              </Grid>
+              <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="10"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="10"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="34"/>
+                <Border Grid.Column="2" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="34"/>
+                <Border Grid.Column="4" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="34"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="2" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="170"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="1" Margin="0,12,0,14"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16" Margin="0,12,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16" Margin="0,12,0,0"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid Grid.Row="4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.2*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="1*"/>
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="170"/>
+              <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="10"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="10"/>
+                  <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="108"/>
+                <Border Grid.Column="2" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="108"/>
+                <Border Grid.Column="4" Style="{StaticResource DashboardSkeletonBlockStyle}" Height="108"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="2" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="160"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="1" Margin="0,12,0,12"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16" Margin="0,12,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="16" Margin="0,12,0,0"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Grid Grid.Row="6">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.2*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="1*"/>
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="150"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="1" Margin="0,10,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="26" Margin="0,10,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="52" Margin="0,10,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="52" Margin="0,8,0,0"/>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="2" Style="{StaticResource DashboardCardStyle}">
+            <StackPanel>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="20" Width="190"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="1" Margin="0,12,0,12"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="22" Width="170"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="14" Margin="0,10,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="14" Margin="0,8,0,0"/>
+              <Border Style="{StaticResource DashboardSkeletonBlockStyle}" Height="14" Margin="0,8,0,0"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Grid>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

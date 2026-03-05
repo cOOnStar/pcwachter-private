@@ -1,0 +1,69 @@
+name: Publish Release Assets (to public release repo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver (e.g. 0.0.76)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      # TODO: Build offline installer + live installer
+      # - run: ...
+
+      - name: Compute SHA256
+        shell: pwsh
+        run: |
+          $offline = "path\to\PCWaechter_offline_installer.exe"
+          $live = "path\to\PCWaechter_live_installer.exe"
+          $offlineHash = (Get-FileHash $offline -Algorithm SHA256).Hash.ToLower()
+          $liveHash = (Get-FileHash $live -Algorithm SHA256).Hash.ToLower()
+          echo "OFFLINE_SHA256=$offlineHash" >> $env:GITHUB_ENV
+          echo "LIVE_SHA256=$liveHash" >> $env:GITHUB_ENV
+
+      - name: Generate manifest
+        shell: pwsh
+        run: |
+          $ver = "${{ inputs.version }}"
+          $base = "https://github.com/cOOnStar/pcwaechter-public-release/releases/latest/download"
+          $manifest = @{
+            schema_version = 1
+            channel = "stable"
+            version = $ver
+            released_at = (Get-Date).ToUniversalTime().ToString("o")
+            min_supported_version = "0.0.0"
+            mandatory = $false
+            offline = @{
+              name = "PCWaechter_offline_installer.exe"
+              url = "$base/PCWaechter_offline_installer.exe"
+              sha256 = "$env:OFFLINE_SHA256"
+              size_bytes = (Get-Item "path\to\PCWaechter_offline_installer.exe").Length
+              signature_required = $true
+              signature_subject_allowlist = @("CN=PCWächter","CN=PCWaecher")
+            }
+            live = @{
+              name = "PCWaechter_live_installer.exe"
+              sha256 = "$env:LIVE_SHA256"
+            }
+          } | ConvertTo-Json -Depth 6
+          $manifest | Out-File -Encoding utf8 installer-manifest.json
+
+      - name: Publish to public release repo using gh (PAT required)
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_REPO_PAT }}
+        shell: pwsh
+        run: |
+          $ver = "v${{ inputs.version }}"
+          gh release create $ver `
+            --repo cOOnStar/pcwaechter-public-release `
+            --title $ver `
+            --notes "Automated release" `
+            "installer-manifest.json#installer-manifest.json" `
+            "path\to\PCWaechter_offline_installer.exe#PCWaechter_offline_installer.exe" `
+            "path\to\PCWaechter_live_installer.exe#PCWaechter_live_installer.exe"

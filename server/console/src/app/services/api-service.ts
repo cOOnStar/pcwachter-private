@@ -1,0 +1,390 @@
+import { getKeycloakToken } from "../context/auth-context";
+
+const BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://api.xn--pcwchter-2za.de/api/v1").replace(/\/$/, "");
+
+async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getKeycloakToken();
+  return fetch(`${BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers ?? {}),
+    },
+  });
+}
+
+async function api<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await authFetch(path, options);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const err = Object.assign(new Error(`${res.status} ${text || res.statusText}`), { status: res.status });
+    throw err;
+  }
+  return res.json() as Promise<T>;
+}
+
+// ── Types ───────────────────────────────────────────────────────────────────
+
+export interface PagedResponse<T> {
+  items: T[];
+  total: number;
+}
+
+export interface DashboardData {
+  kpis: {
+    totalDevices: number;
+    onlineDevices: number;
+    telemetry24h: number;
+    totalLicenses: number;
+    activeLicenses: number;
+  };
+  recentActivity: ActivityItem[];
+}
+
+export interface ActivityItem {
+  id: string;
+  type: string;
+  user?: string;
+  action: string;
+  target?: string;
+  description?: string;
+  timestamp: string;
+  category?: string;
+  severity?: string;
+}
+
+export interface Device {
+  id: string;
+  hostname: string;
+  os: string;
+  agent: string;
+  lastSeen: string;
+  online: boolean;
+  ip: string;
+  blocked: boolean;
+  desktopVersion: string | null;
+  updaterVersion: string | null;
+  updateChannel: string | null;
+}
+
+export interface DeviceDetail extends Device {
+  deviceInstallId: string;
+  createdAt: string;
+  agentVersion: string | null;
+  agentChannel: string | null;
+  tokens?: { id: string; expiresAt: string | null; revokedAt: string | null; lastUsedAt: string | null }[];
+}
+
+export interface License {
+  id: string;
+  licenseKey?: string;
+  tier: string;
+  state: string;
+  durationDays: number | null;
+  issuedAt: string;
+  activatedAt: string | null;
+  expiresAt: string | null;
+  activatedDeviceId: string | null;
+  activatedByUserId: string | null;
+  notes?: string | null;
+}
+
+export interface Plan {
+  id: string;
+  label: string;
+  price_eur: number | null;
+  duration_days: number | null;
+  max_devices: number | null;
+  is_active: boolean;
+  sort_order: number;
+  feature_flags: Record<string, boolean> | null;
+  grace_period_days: number;
+  stripe_price_id: string | null;
+}
+
+export interface FeatureOverride {
+  id: string;
+  feature_key: string;
+  enabled: boolean;
+  rollout_percent: number;
+  scope: string;
+  target_id: string | null;
+  version_min: string | null;
+  platform: string;
+  notes: string | null;
+  updated_at: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  roleKeys: string[];
+  status: string;
+  created: string;
+  lastLogin: string | null;
+}
+
+export interface TelemetryItem {
+  id: string;
+  category: string;
+  device: string;
+  receivedAt: string;
+  summary: string;
+  source: string;
+  severity: string;
+}
+
+export interface ChartPoint {
+  timestamp: string;
+  device: string;
+  summary: string;
+  severity: string;
+  id: string;
+}
+
+export interface AuditLogItem {
+  id: string;
+  time: string;
+  actor: string;
+  action: string;
+  target: string;
+  ip: string;
+  result: string;
+}
+
+export interface ContainerInfo {
+  name: string;
+  status: string;
+  image: string;
+  cpuPercent: number;
+  memoryMb: number;
+}
+
+export interface HostInfo {
+  cpu_percent: number;
+  memory: { total_mb: number; used_mb: number; percent: number };
+  disk: { total_gb: number; used_gb: number; percent: number };
+  uptime_seconds: number;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+
+export async function getDashboard(): Promise<DashboardData> {
+  return api("/console/ui/dashboard");
+}
+
+// ── Devices ─────────────────────────────────────────────────────────────────
+
+export async function getDevices(params?: {
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<Device>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.status) q.set("status", params.status);
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/devices?${q}`);
+}
+
+export async function getDeviceDetail(deviceId: string): Promise<DeviceDetail> {
+  return api(`/console/ui/devices/${encodeURIComponent(deviceId)}/detail`);
+}
+
+export async function blockDevice(deviceId: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/devices/${encodeURIComponent(deviceId)}/block`, { method: "POST" });
+}
+
+export async function unblockDevice(deviceId: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/devices/${encodeURIComponent(deviceId)}/unblock`, { method: "POST" });
+}
+
+// ── Licenses ─────────────────────────────────────────────────────────────────
+
+export async function getLicenses(params?: {
+  search?: string;
+  state?: string;
+  tier?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<License>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.state) q.set("state", params.state);
+  if (params?.tier) q.set("tier", params.tier);
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/licenses?${q}`);
+}
+
+export async function generateLicenses(
+  tier: string,
+  quantity: number,
+  durationDays?: number | null,
+  notes?: string
+): Promise<{ ok: boolean; licenses: License[] }> {
+  return api("/console/ui/licenses/generate", {
+    method: "POST",
+    body: JSON.stringify({ tier, quantity, duration_days: durationDays ?? null, notes: notes ?? null }),
+  });
+}
+
+export async function revokeLicense(key: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/licenses/${encodeURIComponent(key)}/revoke`, { method: "POST" });
+}
+
+export async function blockLicense(key: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/licenses/${encodeURIComponent(key)}/block`, { method: "POST" });
+}
+
+export async function unblockLicense(key: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/licenses/${encodeURIComponent(key)}/unblock`, { method: "POST" });
+}
+
+export async function patchLicense(
+  key: string,
+  data: { expires_at?: string | null; notes?: string | null }
+): Promise<{ ok: boolean }> {
+  return api(`/console/ui/licenses/${encodeURIComponent(key)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Plans ─────────────────────────────────────────────────────────────────────
+
+export async function getPlans(): Promise<PagedResponse<Plan>> {
+  return api("/console/ui/plans");
+}
+
+export async function upsertPlan(planId: string, data: Omit<Plan, "id">): Promise<Plan> {
+  return api(`/console/ui/plans/${planId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Feature Overrides ────────────────────────────────────────────────────────
+
+export async function getFeatureOverrides(): Promise<PagedResponse<FeatureOverride>> {
+  return api("/console/ui/features/overrides");
+}
+
+export async function upsertFeatureOverride(data: {
+  feature_key: string;
+  enabled: boolean;
+  rollout_percent: number;
+  scope?: string;
+  target_id?: string | null;
+  version_min?: string | null;
+  platform?: string;
+  notes?: string | null;
+}): Promise<FeatureOverride> {
+  return api("/console/ui/features/overrides", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function disableFeature(featureKey: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/features/${encodeURIComponent(featureKey)}/disable`, { method: "POST" });
+}
+
+// ── Accounts ─────────────────────────────────────────────────────────────────
+
+export async function getAccounts(params?: {
+  search?: string;
+  role?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<Account>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.role) q.set("role", params.role);
+  if (params?.status) q.set("status", params.status);
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/accounts?${q}`);
+}
+
+export async function updateAccountRole(accountId: string, role: string): Promise<{ id: string; role: string }> {
+  return api(`/console/ui/accounts/${accountId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  });
+}
+
+// ── Telemetry ─────────────────────────────────────────────────────────────────
+
+export async function getTelemetry(params?: {
+  limit?: number;
+  offset?: number;
+  category?: string;
+}): Promise<PagedResponse<TelemetryItem>> {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  if (params?.category) q.set("category", params.category);
+  return api(`/console/ui/telemetry?${q}`);
+}
+
+export async function getTelemetryChart(
+  category: string,
+  hours = 24
+): Promise<{ points: ChartPoint[]; total: number; category: string }> {
+  return api(`/console/ui/telemetry/chart?category=${category}&hours=${hours}`);
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+
+export async function getAuditLog(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<AuditLogItem>> {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/audit-log?${q}`);
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+export async function getNotifications(): Promise<PagedResponse<Notification>> {
+  return api("/console/ui/notifications");
+}
+
+export async function markNotificationRead(id: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/notifications/${encodeURIComponent(id)}/read`, { method: "POST" });
+}
+
+// ── Server ────────────────────────────────────────────────────────────────────
+
+export async function getContainers(): Promise<{ containers: ContainerInfo[] }> {
+  return api("/console/ui/server/containers");
+}
+
+export async function getHostInfo(): Promise<HostInfo> {
+  return api("/console/ui/server/host");
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+
+export async function search(q: string): Promise<{ items: unknown[]; total: number; query: string }> {
+  return api(`/console/ui/search?q=${encodeURIComponent(q)}`);
+}

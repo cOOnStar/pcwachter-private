@@ -1,0 +1,67 @@
+<UserControl x:Class="PCWachter.Desktop.Views.Controls.FindingRowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="FindingRowBadgeStyle" TargetType="Border" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="{DynamicResource StatusInfoBgBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                    <Setter Property="Background" Value="{DynamicResource StatusWarnBgBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                    <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="FindingRowBadgeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource Small}">
+            <Setter Property="Foreground" Value="{DynamicResource StatusInfoBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusWarnBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                    <Setter Property="Foreground" Value="{DynamicResource StatusCritBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <Ellipse Width="8"
+                 Height="8"
+                 Margin="0,7,10,0"
+                 VerticalAlignment="Top"
+                 Fill="{Binding Finding.Severity, Converter={StaticResource SeverityToBrushConverter}}"/>
+
+        <StackPanel Grid.Column="1">
+            <TextBlock Text="{Binding Title}"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding Summary}"
+                       Margin="0,3,0,0"
+                       Style="{StaticResource BodyStyle}"
+                       TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding TimelineText}"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource Small}"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
+        </StackPanel>
+
+        <Border Grid.Column="2"
+                Style="{StaticResource FindingRowBadgeStyle}"
+                VerticalAlignment="Top"
+                Visibility="{Binding BadgeText, Converter={StaticResource StringToVisibilityConverter}}">
+            <TextBlock Text="{Binding BadgeText}"
+                       Style="{StaticResource FindingRowBadgeTextStyle}"/>
+        </Border>
+    </Grid>
+</UserControl>

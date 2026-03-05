@@ -1,0 +1,117 @@
+# Monorepo Workflow: Builds installers und veröffentlicht sie im public-release Repo.
+# Requires secret: PUBLIC_RELEASE_REPO_PAT (PAT with repo scope on cOOnStar/pcwaechter-public-release)
+#
+# Stable asset names (MUSS eingehalten werden, sonst brechen latest/download URLs):
+#   installer-manifest.json
+#   PCWaechter_offline_installer.exe
+#   PCWaechter_live_installer.exe
+
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver ohne v-Prefix (z.B. 0.0.76)"
+        required: true
+
+env:
+  RELEASE_REPO: cOOnStar/pcwaechter-public-release
+  OFFLINE_NAME: PCWaechter_offline_installer.exe
+  LIVE_NAME: PCWaechter_live_installer.exe
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      # ── Build offline installer ──────────────────────────────────────────
+      # TODO: Pfad anpassen sobald Inno/NSIS Setup konfiguriert ist.
+      # Beispiel (Inno Setup):
+      # - name: Build Offline Installer
+      #   shell: pwsh
+      #   run: |
+      #     & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" client/installer/inno/setup.iss
+      #     Copy-Item client/installer/artifacts/PCWaechter_Setup.exe $env:OFFLINE_NAME
+      - name: Placeholder offline installer (ERSETZEN)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path $env:OFFLINE_NAME)) {
+            Write-Error "Offline installer nicht gefunden: $env:OFFLINE_NAME. Bitte Build-Step ergänzen."
+            exit 1
+          }
+
+      # ── Build live installer (bootstrapper) ─────────────────────────────
+      - name: Build Live Installer (bootstrapper)
+        shell: pwsh
+        run: |
+          dotnet publish client/installer/bootstrapper/InstallerBootstrapper.csproj `
+            -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -o artifacts/live/
+          Copy-Item artifacts/live/InstallerBootstrapper.exe $env:LIVE_NAME
+
+      # ── Generate installer-manifest.json ────────────────────────────────
+      - name: Generate installer-manifest.json
+        shell: pwsh
+        run: |
+          $ver  = "${{ inputs.version }}"
+          $base = "https://github.com/$env:RELEASE_REPO/releases/latest/download"
+
+          $offlineSha  = (Get-FileHash -Algorithm SHA256 $env:OFFLINE_NAME).Hash.ToLower()
+          $liveSha     = (Get-FileHash -Algorithm SHA256 $env:LIVE_NAME).Hash.ToLower()
+          $offlineSize = (Get-Item $env:OFFLINE_NAME).Length
+
+          $manifest = [ordered]@{
+            version      = $ver
+            installer    = [ordered]@{
+              url        = "$base/$env:OFFLINE_NAME"
+              sha256     = $offlineSha
+              silentArgs = "/S"
+            }
+            bootstrapper = [ordered]@{
+              version = $ver
+              url     = "$base/$env:LIVE_NAME"
+              sha256  = $liveSha
+            }
+            runtime = [ordered]@{
+              enabled    = $true
+              minVersion = "10.0"
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content installer-manifest.json -Encoding UTF8
+          Write-Host "=== installer-manifest.json ==="
+          Get-Content installer-manifest.json
+
+      # ── Publish to public release repo ──────────────────────────────────
+      - name: Create release in public repo
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_REPO_PAT }}
+        shell: pwsh
+        run: |
+          $tag = "v${{ inputs.version }}"
+          # Delete existing release/tag if re-releasing same version
+          gh release delete $tag --repo $env:RELEASE_REPO --yes 2>$null; $true
+          gh tag delete $tag --repo $env:RELEASE_REPO 2>$null; $true
+
+          gh release create $tag `
+            --repo $env:RELEASE_REPO `
+            --title $tag `
+            --notes "Release $tag" `
+            "installer-manifest.json#installer-manifest.json" `
+            "$env:OFFLINE_NAME#$env:OFFLINE_NAME" `
+            "$env:LIVE_NAME#$env:LIVE_NAME"
+
+      - name: Smoke check – manifest URL accessible
+        shell: pwsh
+        run: |
+          Start-Sleep -Seconds 5
+          $url = "https://github.com/$env:RELEASE_REPO/releases/latest/download/installer-manifest.json"
+          $resp = Invoke-WebRequest -Uri $url -UseBasicParsing
+          if ($resp.StatusCode -ne 200) {
+            Write-Error "Manifest URL nicht erreichbar: $($resp.StatusCode)"
+            exit 1
+          }
+          Write-Host "Manifest erreichbar: $url"

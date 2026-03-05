@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #080a12;
+  --color-surface: #0e1424;
+  --color-card: #11182b;
+  --color-hover: #141d33;
+  --color-border: #1e2d4f;
+  --color-border-muted: #182240;
+
+  --color-text-primary: #e7ecff;
+  --color-text-secondary: #99a7cf;
+  --color-text-muted: #5a6a95;
+
+  --color-accent: #4f7df5;
+  --color-accent-hover: #6290ff;
+  --color-accent-subtle: #1a2a52;
+
+  --color-success: #34c98a;
+  --color-success-subtle: #0d2e1e;
+  --color-warning: #f59e42;
+  --color-warning-subtle: #2e1f0a;
+  --color-danger: #f05a6a;
+  --color-danger-subtle: #2e0f18;
+  --color-info: #6ed8ff;
+  --color-info-subtle: #0d2535;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --sidebar-width: 220px;
+
+  --font-family-sans: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: "Consolas", "Fira Code", monospace;
+}
+
+/* CSS variables for components and legacy patterns */
+:root {
+  --bg-base: #080a12;
+  --bg-surface: #0e1424;
+  --bg-card: #11182b;
+  --bg-hover: #141d33;
+  --border: #1e2d4f;
+  --border-muted: #182240;
+  --text-primary: #e7ecff;
+  --text-secondary: #99a7cf;
+  --text-muted: #5a6a95;
+  --accent: #4f7df5;
+  --accent-hover: #6290ff;
+  --accent-subtle: #1a2a52;
+  --success: #34c98a;
+  --success-subtle: #0d2e1e;
+  --warning: #f59e42;
+  --warning-subtle: #2e1f0a;
+  --danger: #f05a6a;
+  --danger-subtle: #2e0f18;
+  --info: #6ed8ff;
+  --info-subtle: #0d2535;
+  --sidebar-width: 220px;
+  font-family: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

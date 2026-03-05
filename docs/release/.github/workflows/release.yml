@@ -1,0 +1,82 @@
+# Vorlage für pcwaechter-public-release Repo (in dieses Repo kopieren)
+# Asset-Namen sind stabil (kein Versionsprefix) damit latest/download URLs funktionieren.
+# Stable asset names:
+#   installer-manifest.json
+#   PCWaechter_offline_installer.exe
+#   PCWaechter_live_installer.exe
+
+name: Release Installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.0.76)'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Build offline installer (Inno/NSIS) – adjust paths to your build output
+      # - name: Build Offline Installer
+      #   shell: pwsh
+      #   run: dotnet publish ... -o artifacts/
+
+      # TODO: Build live installer (bootstrapper)
+      # - name: Build Live Installer
+      #   shell: pwsh
+      #   run: dotnet publish client/installer/bootstrapper/InstallerBootstrapper.csproj -c Release -r win-x64 --self-contained true -o artifacts/
+
+      - name: Generate installer-manifest.json
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { $version = "${{ inputs.version }}" }
+
+          $offline = "PCWaechter_offline_installer.exe"
+          $live    = "PCWaechter_live_installer.exe"
+          $base    = "https://github.com/${{ github.repository }}/releases/latest/download"
+
+          $offlineSha  = (Get-FileHash -Algorithm SHA256 $offline).Hash.ToLower()
+          $liveSha     = (Get-FileHash -Algorithm SHA256 $live).Hash.ToLower()
+          $offlineSize = (Get-Item $offline).Length
+
+          # Schema matches client/installer/bootstrapper/InstallerBootstrapper.csproj expectations
+          $manifest = [ordered]@{
+            version = $version
+            installer = [ordered]@{
+              url        = "$base/$offline"
+              sha256     = $offlineSha
+              silentArgs = "/S"
+            }
+            bootstrapper = [ordered]@{
+              version = $version
+              url     = "$base/$live"
+              sha256  = $liveSha
+            }
+            runtime = [ordered]@{
+              enabled    = $true
+              minVersion = "10.0"
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content installer-manifest.json -Encoding UTF8
+          Write-Host "Manifest:"
+          Get-Content installer-manifest.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            installer-manifest.json
+            PCWaechter_offline_installer.exe
+            PCWaechter_live_installer.exe

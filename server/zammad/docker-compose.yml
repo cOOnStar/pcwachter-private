@@ -1,0 +1,246 @@
+# Zammad – Standalone Compose
+# Verwendung: docker compose -f server/zammad/docker-compose.yml --env-file .env up -d
+#
+# Alternativ via Hauptcompose-Profil:
+#   docker compose -f server/infra/compose/docker-compose.yml --env-file .env --profile zammad up -d
+
+networks:
+  zammad-internal:
+    driver: bridge
+
+volumes:
+  zammad-storage:
+  zammad-data:
+  zammad-db-data:
+  zammad-redis-data:
+  zammad-elasticsearch-data:
+
+services:
+
+  # -------------------------
+  # Elasticsearch (Volltext-Suche)
+  # -------------------------
+  zammad-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: pcw-zammad-elasticsearch
+    restart: unless-stopped
+    environment:
+      xpack.security.enabled: "false"
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms256m -Xmx256m"
+    volumes:
+      - zammad-elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # Redis (Sessions / Cache)
+  # -------------------------
+  zammad-redis:
+    image: redis:7-alpine
+    container_name: pcw-zammad-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - zammad-redis-data:/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # PostgreSQL (Datenbank)
+  # -------------------------
+  zammad-db:
+    image: postgres:15-alpine
+    container_name: pcw-zammad-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRES_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRES_PASSWORD: ${ZAMMAD_POSTGRES_PASSWORD:-CHANGE_ME}
+    volumes:
+      - zammad-db-data:/var/lib/postgresql/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ZAMMAD_POSTGRES_USER:-zammad} -d ${ZAMMAD_POSTGRES_DB:-zammad}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # Zammad Init (Schema + Seeds – läuft einmal durch)
+  # -------------------------
+  zammad-init:
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-init
+    restart: on-failure
+    command: ["zammad-init"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-CHANGE_ME}
+      REDIS_URL: redis://zammad-redis:6379
+      ELASTICSEARCH_HOST: zammad-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_ENABLED: "true"
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-db:
+        condition: service_healthy
+      zammad-redis:
+        condition: service_healthy
+    networks:
+      - zammad-internal
+
+  # -------------------------
+  # Zammad Railsserver (API + Web)
+  # -------------------------
+  zammad-railsserver:
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-railsserver
+    restart: unless-stopped
+    command: ["zammad-railsserver"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-CHANGE_ME}
+      REDIS_URL: redis://zammad-redis:6379
+      ELASTICSEARCH_HOST: zammad-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_ENABLED: "true"
+      ZAMMAD_FQDN: ${ZAMMAD_HOSTNAME:-support.pcwaechter.local}
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+      zammad-elasticsearch:
+        condition: service_healthy
+    networks:
+      - zammad-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # Zammad Scheduler (Background Jobs)
+  # -------------------------
+  zammad-scheduler:
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-scheduler
+    restart: unless-stopped
+    command: ["zammad-scheduler"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-CHANGE_ME}
+      REDIS_URL: redis://zammad-redis:6379
+      ELASTICSEARCH_HOST: zammad-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+    networks:
+      - zammad-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # Zammad Websocket
+  # -------------------------
+  zammad-websocket:
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-websocket
+    restart: unless-stopped
+    command: ["zammad-websocket"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-CHANGE_ME}
+      REDIS_URL: redis://zammad-redis:6379
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+    networks:
+      - zammad-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -------------------------
+  # Zammad Nginx (Frontend / Reverse Proxy intern)
+  # -------------------------
+  zammad-nginx:
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-nginx
+    restart: unless-stopped
+    command: ["zammad-nginx"]
+    environment:
+      NGINX_SERVER_NAME: ${ZAMMAD_HOSTNAME:-support.pcwaechter.local}
+      NGINX_PORT: "3001"
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-railsserver:
+        condition: service_started
+      zammad-websocket:
+        condition: service_started
+    networks:
+      - zammad-internal
+    ports:
+      - "3001:3001"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

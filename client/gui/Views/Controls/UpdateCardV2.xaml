@@ -1,0 +1,277 @@
+﻿<UserControl x:Class="PCWachter.Desktop.Views.Controls.UpdateCardV2"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PCWachter.Desktop.ViewModels"
+             x:Name="Root">
+  <UserControl.Resources>
+    <Style x:Key="CardRootStyle" TargetType="Border">
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="Padding" Value="12,10"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1E2A3D" Offset="0"/>
+            <GradientStop Color="#192436" Offset="1"/>
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter Property="Opacity" Value="0.97"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SecondaryActionButtonStyle" TargetType="Button">
+      <Setter Property="MinWidth" Value="112"/>
+      <Setter Property="Padding" Value="14,6"/>
+      <Setter Property="Background" Value="#2E3A52"/>
+      <Setter Property="Foreground" Value="#D8E6FB"/>
+      <Setter Property="BorderBrush" Value="#495C7B"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root"
+                    CornerRadius="12"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Background" Value="#374865"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Opacity" Value="0.86"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
+      <Setter Property="MinWidth" Value="164"/>
+      <Setter Property="Padding" Value="16,8"/>
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#4EA7FF" Offset="0"/>
+            <GradientStop Color="#1D6FD9" Offset="1"/>
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Foreground" Value="#F7FBFF"/>
+      <Setter Property="BorderBrush" Value="#83C9FF"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Root"
+                    CornerRadius="12"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Root" Property="Opacity" Value="0.92"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Root" Property="Opacity" Value="0.84"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Border Style="{StaticResource CardRootStyle}">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <Grid Grid.Row="0" Grid.Column="0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <CheckBox Grid.Column="0"
+                  Width="20"
+                  Height="20"
+                  Margin="0,0,10,0"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding ElementName=Root, Path=Item.IsSelected}"
+                  IsEnabled="{Binding ElementName=Root, Path=Item.CanInstall}"/>
+
+        <Border Grid.Column="1"
+                Width="22"
+                Height="22"
+                Margin="0,0,10,0"
+                CornerRadius="6"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                Background="{DynamicResource SurfaceBrush}">
+          <Grid>
+            <Image Width="14"
+                   Height="14"
+                   Stretch="Uniform"
+                   Source="{Binding ElementName=Root, Path=Item.ProgramIconImage}"/>
+            <TextBlock Text="{Binding ElementName=Root, Path=Item.ProgramIconGlyph}"
+                       FontFamily="Segoe MDL2 Assets"
+                       FontSize="11"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextBrush}">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ElementName=Root, Path=Item.ProgramIconImage}" Value="{x:Null}">
+                      <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ElementName=Root, Path=Item.Name}"
+                     FontSize="20"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource TextBrush}"/>
+          <TextBlock Margin="0,2,0,0"
+                     Text="{Binding ElementName=Root, Path=Item.Subtitle}"
+                     FontSize="13"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Vertical" VerticalAlignment="Top">
+        <Button Style="{StaticResource PrimaryActionButtonStyle}"
+                Margin="0,0,0,6"
+                Content="Installieren"
+                Command="{Binding ElementName=Root, Path=InstallCommand}"
+                CommandParameter="{Binding ElementName=Root, Path=Item}"
+                IsEnabled="{Binding ElementName=Root, Path=Item.CanInstall}"/>
+        <Button Style="{StaticResource SecondaryActionButtonStyle}"
+                Content="Mehr ▾"
+                Command="{Binding ElementName=Root, Path=ToggleDetailsCommand}"
+                CommandParameter="{Binding ElementName=Root, Path=Item}"/>
+      </StackPanel>
+
+      <StackPanel Grid.Row="1"
+                  Grid.ColumnSpan="2"
+                  Orientation="Horizontal"
+                  Margin="30,10,0,0">
+        <Border Style="{StaticResource StatusChipBorderStyle}" Tag="{Binding ElementName=Root, Path=Item.GroupLevel}">
+          <TextBlock Text="{Binding ElementName=Root, Path=Item.GroupLabel}"
+                     Style="{StaticResource StatusChipTextStyle}"
+                     Tag="{Binding ElementName=Root, Path=Item.GroupLevel}"/>
+        </Border>
+        <Border Style="{StaticResource StatusChipBorderStyle}" Tag="info" Margin="8,0,0,0">
+          <TextBlock Text="{Binding ElementName=Root, Path=Item.RestartHint}"
+                     Style="{StaticResource StatusChipTextStyle}"
+                     Tag="info"/>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="30,10,0,0">
+        <StackPanel Orientation="Horizontal"
+                    Visibility="{Binding ElementName=Root, Path=Item.ShowProgress, Converter={StaticResource BoolToVisibilityConverter}}">
+          <ProgressBar Width="220"
+                       Height="6"
+                       Margin="0,0,8,0"
+                       Minimum="0"
+                       Maximum="100"
+                       Value="{Binding ElementName=Root, Path=Item.InstallProgress, Mode=OneWay}"/>
+          <TextBlock Text="{Binding ElementName=Root, Path=Item.InstallStatusText}"
+                     FontSize="12"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+
+        <Border Margin="0,6,0,0"
+                Padding="10,6"
+                CornerRadius="8"
+                BorderThickness="1"
+                Visibility="{Binding ElementName=Root, Path=Item.ShowOutcome, Converter={StaticResource BoolToVisibilityConverter}}">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="BorderBrush" Value="{DynamicResource StatusGoodBrush}"/>
+              <Setter Property="Background" Value="{DynamicResource StatusGoodBgBrush}"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=Root, Path=Item.OutcomeLevel}" Value="critical">
+                  <Setter Property="BorderBrush" Value="{DynamicResource StatusCritBrush}"/>
+                  <Setter Property="Background" Value="{DynamicResource StatusCritBgBrush}"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <DockPanel LastChildFill="False">
+            <TextBlock Text="{Binding ElementName=Root, Path=Item.OutcomeText}"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextBrush}"/>
+            <Button DockPanel.Dock="Right"
+                    Style="{StaticResource SecondaryActionButtonStyle}"
+                    Content="Details anzeigen"
+                    Command="{Binding ElementName=Root, Path=ShowDetailsCommand}"
+                    CommandParameter="{Binding ElementName=Root, Path=Item}"
+                    Visibility="{Binding ElementName=Root, Path=Item.ShowFailureDetails, Converter={StaticResource BoolToVisibilityConverter}}"/>
+          </DockPanel>
+        </Border>
+
+        <Border Margin="0,8,0,0"
+                Padding="10"
+                CornerRadius="8"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                Background="{DynamicResource SurfaceBrush}"
+                Visibility="{Binding ElementName=Root, Path=Item.IsDetailsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+          <StackPanel>
+            <TextBlock Text="{Binding ElementName=Root, Path=Item.Publisher, StringFormat=Publisher: {0}}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock Margin="0,2,0,0"
+                       Text="{Binding ElementName=Root, Path=Item.Source, StringFormat=Quelle: {0}}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+            <TextBlock Margin="0,8,0,0"
+                       Text="{Binding ElementName=Root, Path=Item.DetailsText}"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource TextBrush}"/>
+            <TextBlock Margin="0,8,0,0"
+                       Text="{Binding ElementName=Root, Path=Item.ReleaseNotes}"
+                       TextWrapping="Wrap"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>

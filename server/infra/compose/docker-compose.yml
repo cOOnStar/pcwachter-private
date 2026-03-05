@@ -1,0 +1,408 @@
+# PCWächter – Unified Compose
+# Benutzung: docker compose -f server/infra/compose/docker-compose.yml --env-file .env up -d
+# oder: make up (liest .env automatisch)
+
+networks:
+  pcw-internal:
+    driver: bridge
+  zammad-internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  exports_data:
+  uploads_data:
+  zammad-storage:
+  zammad-data:
+  zammad-db-data:
+  zammad-redis-data:
+  zammad-elasticsearch-data:
+
+services:
+  # -------------------------
+  # PostgreSQL
+  # -------------------------
+  postgres:
+    image: postgres:17
+    container_name: pcw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pcwaechter}
+      POSTGRES_USER: ${POSTGRES_USER:-pcwaechter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - pcw-internal
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pcwaechter} -d ${POSTGRES_DB:-pcwaechter}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # -------------------------
+  # Keycloak (Identity)
+  # -------------------------
+  keycloak:
+    image: ${PCW_KEYCLOAK_IMAGE:-pcw-keycloak:local}
+    build:
+      context: ../../keycloak
+      dockerfile: Dockerfile
+    container_name: pcw-keycloak
+    restart: unless-stopped
+    command: ["start"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pcwaechter}
+      KC_DB_USERNAME: ${POSTGRES_USER:-pcwaechter}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME:-https://login.xn--pcwchter-2za.de}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "false"
+      KC_PROXY_HEADERS: xforwarded
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ../../keycloak/keycloak-theme/pcwaechter-v1:/opt/keycloak/themes/pcwaechter-v1:ro
+    networks:
+      - pcw-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18083:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo ok || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+
+  # -------------------------
+  # FastAPI Backend
+  # -------------------------
+  api:
+    image: ${PCW_API_IMAGE:-pcw-api:local}
+    build:
+      context: ../../api
+      dockerfile: Dockerfile
+    container_name: pcw-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pcwaechter}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pcwaechter}
+      ONLINE_THRESHOLD_SECONDS: "90"
+      API_KEYS: ${API_KEYS:-}
+      AGENT_API_KEYS: ${AGENT_API_KEYS:-}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-pcwaechter-prod}
+      KEYCLOAK_ADMIN_USER: ${KC_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-admin-cli}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-}
+      CONSOLE_ALLOWED_ROLES: ${CONSOLE_ALLOWED_ROLES:-pcw_admin,pcw_console}
+      KEYCLOAK_AUDIENCE: ${KEYCLOAK_AUDIENCE:-pcwaechter-api}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://console.xn--pcwchter-2za.de,https://home.xn--pcwchter-2za.de}
+      ZAMMAD_BASE_URL: ${ZAMMAD_BASE_URL:-}
+      ZAMMAD_API_TOKEN: ${ZAMMAD_API_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      FIGMA_PREVIEW_KEY: ${FIGMA_PREVIEW_KEY:-}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - exports_data:/data/exports
+      - uploads_data:/data/uploads
+    networks:
+      - pcw-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18080:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Admin Console (React SPA / Vite)
+  # Build args werden beim Image-Build eingebacken.
+  # -------------------------
+  console:
+    image: ${PCW_CONSOLE_IMAGE:-pcw-console:local}
+    build:
+      context: ../../console
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.xn--pcwchter-2za.de/api/v1}
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-https://login.xn--pcwchter-2za.de}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-pcwaechter-prod}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-console}
+    container_name: pcw-console
+    restart: unless-stopped
+    networks:
+      - pcw-internal
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "13000:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Kundenportal (Next.js)
+  # -------------------------
+  home:
+    image: ${PCW_HOME_IMAGE:-pcw-home:local}
+    build:
+      context: ../../home
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+    container_name: pcw-home
+    restart: unless-stopped
+    environment:
+      AUTH_KEYCLOAK_ID: ${AUTH_KEYCLOAK_ID:-home}
+      AUTH_KEYCLOAK_SECRET: ${AUTH_KEYCLOAK_SECRET:-}
+      AUTH_KEYCLOAK_ISSUER: ${AUTH_KEYCLOAK_ISSUER:-http://localhost:8080/realms/pcwaechter-prod}
+      AUTH_SECRET: ${AUTH_SECRET}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+    networks:
+      - pcw-internal
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "13001:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Zammad (optional – nur mit: --profile zammad)
+  # Standalone-Compose: server/zammad/docker-compose.yml
+  # Post-Install Setup: server/zammad/setup.sh
+
+  zammad-elasticsearch:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE_ES:-docker.elastic.co/elasticsearch/elasticsearch:8.13.4}
+    container_name: pcw-zammad-elasticsearch
+    restart: unless-stopped
+    environment:
+      xpack.security.enabled: "false"
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms256m -Xmx256m"
+    volumes:
+      - zammad-elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zammad-redis:
+    profiles: [zammad]
+    image: redis:7-alpine
+    container_name: pcw-zammad-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - zammad-redis-data:/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zammad-db:
+    profiles: [zammad]
+    image: postgres:15-alpine
+    container_name: pcw-zammad-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRES_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRES_PASSWORD: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+    volumes:
+      - zammad-db-data:/var/lib/postgresql/data
+    networks:
+      - zammad-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zammad"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zammad-init:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-init
+    restart: on-failure
+    command: ["zammad-init"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+      REDIS_URL: redis://zammad-redis:6379
+      ELASTICSEARCH_HOST: zammad-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_ENABLED: "true"
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-db:
+        condition: service_healthy
+      zammad-redis:
+        condition: service_healthy
+      zammad-elasticsearch:
+        condition: service_healthy
+    networks:
+      - zammad-internal
+
+  zammad-railsserver:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-railsserver
+    restart: unless-stopped
+    command: ["zammad-railsserver"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+      REDIS_URL: redis://zammad-redis:6379
+      ELASTICSEARCH_HOST: zammad-elasticsearch
+      ELASTICSEARCH_PORT: "9200"
+      ELASTICSEARCH_ENABLED: "true"
+      ZAMMAD_FQDN: ${ZAMMAD_HOSTNAME:-support.pcwaechter.local}
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+      zammad-elasticsearch:
+        condition: service_healthy
+    networks:
+      - zammad-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zammad-scheduler:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-scheduler
+    restart: unless-stopped
+    command: ["zammad-scheduler"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+      REDIS_URL: redis://zammad-redis:6379
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+    networks:
+      - zammad-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  zammad-websocket:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad-websocket
+    restart: unless-stopped
+    command: ["zammad-websocket"]
+    environment:
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+      REDIS_URL: redis://zammad-redis:6379
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-init:
+        condition: service_completed_successfully
+    networks:
+      - zammad-internal
+
+  zammad-nginx:
+    profiles: [zammad]
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    container_name: pcw-zammad
+    restart: unless-stopped
+    command: ["zammad-nginx"]
+    environment:
+      NGINX_SERVER_NAME: ${ZAMMAD_HOSTNAME:-support.pcwaechter.local}
+      NGINX_PORT: "3001"
+    volumes:
+      - zammad-storage:/opt/zammad/storage
+      - zammad-data:/opt/zammad/data
+    depends_on:
+      zammad-railsserver:
+        condition: service_started
+      zammad-websocket:
+        condition: service_started
+    networks:
+      - zammad-internal
+      - pcw-internal
+    ports:
+      - "3001:3001"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

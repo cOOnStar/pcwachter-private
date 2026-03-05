@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "project": "PCWächter",
+    "generated": "2026-03-05",
+    "notes": "Template registry. Run generator to merge + validate against repo."
+  },
+  "flags": [
+    {
+      "key": "platform.feature_flags",
+      "default": true,
+      "tier": "all",
+      "description": "Feature Control Plane (Remote Config)"
+    },
+    {
+      "key": "dashboard.security_score",
+      "default": true,
+      "tier": "all",
+      "description": "Security/Health Score tile + overview"
+    },
+    {
+      "key": "dashboard.monthly_report",
+      "default": false,
+      "tier": "pro",
+      "description": "Monthly report & trend narrative"
+    },
+    {
+      "key": "updates.winget.scan",
+      "default": true,
+      "tier": "all",
+      "description": "WinGet scan for app updates"
+    },
+    {
+      "key": "updates.winget.update",
+      "default": false,
+      "tier": "standard",
+      "description": "WinGet update execution"
+    },
+    {
+      "key": "startup.manager",
+      "default": true,
+      "tier": "all",
+      "description": "Startup manager with undo"
+    },
+    {
+      "key": "backup.wizard",
+      "default": false,
+      "tier": "pro",
+      "description": "Backup check + wizard"
+    },
+    {
+      "key": "support.export_zip",
+      "default": true,
+      "tier": "all",
+      "description": "Support package export ZIP"
+    },
+    {
+      "key": "support.export_pdf",
+      "default": false,
+      "tier": "pro",
+      "description": "Support package export PDF"
+    },
+    {
+      "key": "network.diagnose",
+      "default": true,
+      "tier": "all",
+      "description": "Network diagnose + quick fixes"
+    },
+    {
+      "key": "storage.analyzer",
+      "default": true,
+      "tier": "all",
+      "description": "Storage analyzer (space hogs)"
+    },
+    {
+      "key": "storage.smart_badge",
+      "default": true,
+      "tier": "all",
+      "description": "Disk health badge (SMART)"
+    },
+    {
+      "key": "performance.watch",
+      "default": false,
+      "tier": "standard",
+      "description": "Performance spikes watch + hints"
+    },
+    {
+      "key": "recovery.restore_point",
+      "default": false,
+      "tier": "pro",
+      "description": "Create restore point before fixes"
+    },
+    {
+      "key": "privacy.telemetry_toggle",
+      "default": false,
+      "tier": "standard",
+      "description": "Privacy/telemetry toggle + transparency"
+    },
+    {
+      "key": "maintenance.scheduler",
+      "default": false,
+      "tier": "pro",
+      "description": "Maintenance schedule + auto-fix window"
+    },
+    {
+      "key": "device.block_unblock",
+      "default": false,
+      "tier": "admin",
+      "description": "Console: block/unblock a device"
+    },
+    {
+      "key": "license.generate",
+      "default": true,
+      "tier": "admin",
+      "description": "Console: generate license keys"
+    }
+  ]
+}

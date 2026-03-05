@@ -1,0 +1,187 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/api/**"
+      - "server/console/**"
+      - "server/home/**"
+      - "shared/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build (api / console / home / all)"
+        required: false
+        default: "all"
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: coonstar
+
+jobs:
+  # ── Gemeinsame Änderungs-Erkennung ─────────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api:     ${{ steps.filter.outputs.api }}
+      console: ${{ steps.filter.outputs.console }}
+      home:    ${{ steps.filter.outputs.home }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'server/api/**'
+              - 'shared/**'
+            console:
+              - 'server/console/**'
+            home:
+              - 'server/home/**'
+
+  # ── API Backend ────────────────────────────────────────────────────────────
+  build-api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || github.event.inputs.service == 'api' || github.event.inputs.service == 'all'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/pcwaechter-api
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable={{is_default_branch}}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server/api
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Admin Console ──────────────────────────────────────────────────────────
+  build-console:
+    needs: changes
+    if: needs.changes.outputs.console == 'true' || github.event.inputs.service == 'console' || github.event.inputs.service == 'all'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/pcwaechter-console
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable={{is_default_branch}}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server/console
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL || 'https://api.xn--pcwchter-2za.de' }}
+            VITE_KEYCLOAK_URL=${{ vars.KEYCLOAK_URL || 'https://login.xn--pcwchter-2za.de' }}
+            VITE_KEYCLOAK_REALM=${{ vars.KEYCLOAK_REALM || 'pcwaechter-prod' }}
+            VITE_KEYCLOAK_CLIENT_ID=${{ vars.CONSOLE_KEYCLOAK_CLIENT_ID || 'console' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Home Portal ────────────────────────────────────────────────────────────
+  build-home:
+    needs: changes
+    if: needs.changes.outputs.home == 'true' || github.event.inputs.service == 'home' || github.event.inputs.service == 'all'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/pcwaechter-home
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable={{is_default_branch}}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server/home
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.VITE_API_URL || 'https://api.xn--pcwchter-2za.de' }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ vars.STRIPE_PUBLISHABLE_KEY || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Deploy (SSH) ───────────────────────────────────────────────────────────
+  deploy:
+    needs: [build-api, build-console, build-home]
+    # Läuft auch wenn einzelne Jobs übersprungen wurden (if: always() + kein Fehler)
+    if: always() && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy auf Server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /opt/pcwaechter
+            docker compose -f server/api/infra/compose/docker-compose.yml pull
+            docker compose -f server/api/infra/compose/docker-compose.yml up -d --remove-orphans
+
+            # Datenbankmigrationen
+            docker exec api alembic upgrade head || true
+
+            # Aufräumen
+            docker image prune -f

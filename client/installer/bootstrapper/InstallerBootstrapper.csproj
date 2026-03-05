@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PCWaechter.Installer.Bootstrapper</AssemblyName>
+    <RootNamespace>PCWaechter.Installer.Bootstrapper</RootNamespace>
+    <BrandChannel Condition="'$(BrandChannel)' == '' and '$(Configuration)' == 'Release'">prod</BrandChannel>
+    <BrandChannel Condition="'$(BrandChannel)' == '' and '$(Configuration)' != 'Release'">dev</BrandChannel>
+    <ApplicationIcon>..\..\..\shared\assets\branding\$(BrandChannel)\pcwaechter-brand.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishAot>true</PublishAot>
+    <SelfContained>true</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StripSymbols>true</StripSymbols>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+</Project>

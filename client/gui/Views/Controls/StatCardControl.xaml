@@ -1,0 +1,12 @@
+<UserControl x:Class="PCWachter.Desktop.Views.Controls.StatCardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+    <Border Style="{StaticResource CardStyle}">
+        <StackPanel>
+            <TextBlock Text="{Binding Title, ElementName=Root}" Style="{StaticResource BodyStyle}"/>
+            <TextBlock Text="{Binding Value, ElementName=Root}" Style="{StaticResource MetricValue}" Margin="0,4,0,0"/>
+            <TextBlock Text="{Binding Subtitle, ElementName=Root}" Style="{StaticResource BodyStyle}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+    </Border>
+</UserControl>

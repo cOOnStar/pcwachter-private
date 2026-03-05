@@ -1,0 +1,281 @@
+<UserControl x:Class="PCWachter.Desktop.Views.Controls.NavigationPane"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <UserControl.Resources>
+    <LinearGradientBrush x:Key="SelectedNavBrush" StartPoint="0,0" EndPoint="1,1">
+      <GradientStop Color="#3FA7FF" Offset="0"/>
+      <GradientStop Color="#1F68CF" Offset="1"/>
+    </LinearGradientBrush>
+
+    <DropShadowEffect x:Key="SelectedNavShadow"
+                      Color="#6BB9FF"
+                      BlurRadius="12"
+                      ShadowDepth="0"
+                      Opacity="0.32"/>
+
+    <ControlTemplate x:Key="NavButtonCompactTemplate" TargetType="Button">
+      <Border x:Name="Panel"
+              Background="{TemplateBinding Background}"
+              BorderBrush="Transparent"
+              BorderThickness="1"
+              CornerRadius="8">
+        <ContentPresenter HorizontalAlignment="Center"
+                          VerticalAlignment="Center"/>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter TargetName="Panel" Property="Background" Value="#19263A"/>
+        </Trigger>
+        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+          <Setter Property="Foreground" Value="#FFFFFF"/>
+          <Setter Property="FontWeight" Value="SemiBold"/>
+          <Setter TargetName="Panel" Property="Background" Value="{StaticResource SelectedNavBrush}"/>
+          <Setter TargetName="Panel" Property="BorderBrush" Value="#84CCFF"/>
+          <Setter TargetName="Panel" Property="Effect" Value="{StaticResource SelectedNavShadow}"/>
+        </DataTrigger>
+        <Trigger Property="IsPressed" Value="True">
+          <Setter TargetName="Panel" Property="Opacity" Value="0.86"/>
+        </Trigger>
+        <Trigger Property="IsKeyboardFocused" Value="True">
+          <Setter TargetName="Panel" Property="BorderBrush" Value="#8CB9FF"/>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="NavButtonStyle" TargetType="Button">
+      <Setter Property="Height" Value="44"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+      <Setter Property="Padding" Value="14,0"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Foreground" Value="#EAF0FB"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="ToolTipService.IsEnabled" Value="False"/>
+      <Setter Property="ToolTipService.Placement" Value="Right"/>
+      <Setter Property="ToolTipService.InitialShowDelay" Value="220"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid>
+              <Border x:Name="ActiveIndicator"
+                      Width="3"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      Margin="0,7,0,7"
+                      CornerRadius="2"
+                      Background="#89CAFF"
+                      Opacity="0"/>
+
+              <Border x:Name="Panel"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="Transparent"
+                      BorderThickness="1"
+                      CornerRadius="7"
+                      Margin="4,0,0,0">
+                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalAlignment="Center"/>
+              </Border>
+
+              <Border x:Name="Divider"
+                      Height="1"
+                      VerticalAlignment="Bottom"
+                      Margin="6,0,6,0"
+                      Background="#36445B"/>
+            </Grid>
+
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Panel" Property="Background" Value="#19263A"/>
+              </Trigger>
+
+              <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="Foreground" Value="#FFFFFF"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter TargetName="Panel" Property="Background" Value="{StaticResource SelectedNavBrush}"/>
+                <Setter TargetName="Panel" Property="BorderBrush" Value="#84CCFF"/>
+                <Setter TargetName="Panel" Property="Effect" Value="{StaticResource SelectedNavShadow}"/>
+                <Setter TargetName="Divider" Property="Opacity" Value="0"/>
+                <Setter TargetName="ActiveIndicator" Property="Opacity" Value="1"/>
+              </DataTrigger>
+
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Panel" Property="Opacity" Value="0.86"/>
+              </Trigger>
+
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Panel" Property="BorderBrush" Value="#8CB9FF"/>
+              </Trigger>
+
+              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+                <Setter TargetName="Divider" Property="Opacity" Value="0"/>
+                <Setter TargetName="Panel" Property="CornerRadius" Value="10"/>
+                <Setter TargetName="Panel" Property="Margin" Value="0"/>
+                <Setter TargetName="ActiveIndicator" Property="Margin" Value="0,10,0,10"/>
+                <Setter TargetName="ActiveIndicator" Property="Width" Value="0"/>
+              </DataTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+          <Setter Property="Height" Value="36"/>
+          <Setter Property="Width" Value="40"/>
+          <Setter Property="Margin" Value="0"/>
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="HorizontalContentAlignment" Value="Center"/>
+          <Setter Property="VerticalContentAlignment" Value="Center"/>
+          <Setter Property="Template" Value="{StaticResource NavButtonCompactTemplate}"/>
+          <Setter Property="ToolTipService.IsEnabled" Value="True"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NavIconStyle" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+      <Setter Property="FontSize" Value="17"/>
+      <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <Style x:Key="NavIconCompactStyle" TargetType="TextBlock" BasedOn="{StaticResource NavIconStyle}">
+      <Setter Property="FontSize" Value="18"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="TextAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="NavTitleStyle" TargetType="TextBlock">
+      <Setter Property="Visibility" Value="Visible"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="9,0,0,0"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+          <Setter Property="Visibility" Value="Collapsed"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="NavAttentionDotStyle" TargetType="Border">
+      <Setter Property="Width" Value="8"/>
+      <Setter Property="Height" Value="8"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Background" Value="#FF5A63"/>
+      <Setter Property="Visibility" Value="Collapsed"/>
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding HasAttention}" Value="True">
+          <Setter Property="Visibility" Value="Visible"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding AttentionLevel}" Value="warning">
+          <Setter Property="Background" Value="#F3B63E"/>
+        </DataTrigger>
+        <DataTrigger Binding="{Binding AttentionLevel}" Value="critical">
+          <Setter Property="Background" Value="#FF5A63"/>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <Border x:Name="RailBase">
+      <Border.Style>
+        <Style TargetType="Border">
+          <Setter Property="Background" Value="#131D2D"/>
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+              <Setter Property="Background" Value="Transparent"/>
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+    </Border>
+    <Border x:Name="RailGlow">
+      <Border.Style>
+        <Style TargetType="Border">
+          <Setter Property="Opacity" Value="0.55"/>
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+              <Setter Property="Opacity" Value="0"/>
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </Border.Style>
+      <Border.Background>
+        <RadialGradientBrush Center="0.15,0.58" GradientOrigin="0.15,0.58" RadiusX="0.9" RadiusY="1.05">
+          <GradientStop Color="#26354D" Offset="0"/>
+          <GradientStop Color="#131D2D" Offset="1"/>
+        </RadialGradientBrush>
+      </Border.Background>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Focusable="False"
+                  KeyboardNavigation.TabNavigation="Continue">
+      <ItemsControl ItemsSource="{Binding NavItems}">
+        <ItemsControl.Style>
+          <Style TargetType="ItemsControl">
+            <Setter Property="Margin" Value="8,6,8,6"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+                <Setter Property="Margin" Value="0"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ItemsControl.Style>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Button Style="{StaticResource NavButtonStyle}"
+                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding Key}"
+                    ToolTip="{Binding Title}"
+                    AutomationProperties.Name="{Binding Title, StringFormat=Navigation: {0}}"
+                    AutomationProperties.HelpText="{Binding Key}">
+              <Grid>
+                <Grid x:Name="ExpandedContent">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <Grid Grid.Column="0">
+                    <TextBlock Style="{StaticResource NavIconStyle}" Text="{Binding IconGlyph}"/>
+                    <Border Style="{StaticResource NavAttentionDotStyle}"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="-2,2,0,0"
+                            Panel.ZIndex="2"/>
+                  </Grid>
+                  <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource NavTitleStyle}"/>
+                </Grid>
+
+                <Grid x:Name="CompactContent" Visibility="Collapsed">
+                  <Grid Width="20" Height="20">
+                    <TextBlock Style="{StaticResource NavIconCompactStyle}" Text="{Binding IconGlyph}"/>
+                    <Border Style="{StaticResource NavAttentionDotStyle}"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="-2,-1,0,0"
+                            Panel.ZIndex="2"/>
+                  </Grid>
+                </Grid>
+              </Grid>
+            </Button>
+            <DataTemplate.Triggers>
+              <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=UserControl}, Path=ActualWidth, Converter={StaticResource LessThanConverter}, ConverterParameter=130}" Value="True">
+                <Setter TargetName="ExpandedContent" Property="Visibility" Value="Collapsed"/>
+                <Setter TargetName="CompactContent" Property="Visibility" Value="Visible"/>
+              </DataTrigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

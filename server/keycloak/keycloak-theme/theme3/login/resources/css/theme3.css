@@ -1,0 +1,139 @@
+/* Theme3: modern, clean login styling on top of keycloak.v2 */
+
+:root {
+  --theme3-bg-1: #0f172a;
+  --theme3-bg-2: #1e293b;
+  --theme3-accent: #38bdf8;
+  --theme3-accent-strong: #0ea5e9;
+  --theme3-text: #e2e8f0;
+  --theme3-muted: #94a3b8;
+  --theme3-card: rgba(15, 23, 42, 0.68);
+  --theme3-border: rgba(148, 163, 184, 0.24);
+  --theme3-focus: 0 0 0 3px rgba(56, 189, 248, 0.24);
+}
+
+body.login-pf {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 10% -10%, rgba(56, 189, 248, 0.22), transparent 55%),
+    radial-gradient(1000px 600px at 90% 120%, rgba(14, 165, 233, 0.18), transparent 60%),
+    linear-gradient(160deg, var(--theme3-bg-1), var(--theme3-bg-2));
+  color: var(--theme3-text);
+}
+
+#kc-header-wrapper,
+#kc-header,
+#kc-locale,
+#kc-content-wrapper {
+  color: var(--theme3-text);
+}
+
+#kc-content {
+  max-width: 480px;
+}
+
+.card-pf,
+#kc-form-wrapper,
+#kc-info-wrapper {
+  background: var(--theme3-card);
+  border: 1px solid var(--theme3-border);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+}
+
+.card-pf {
+  box-shadow: 0 24px 64px rgba(2, 6, 23, 0.5);
+}
+
+#kc-page-title,
+#kc-form h1,
+h1#kc-page-title {
+  color: #f8fafc;
+  letter-spacing: 0.2px;
+}
+
+.login-pf a {
+  color: #7dd3fc;
+}
+
+.login-pf a:hover,
+.login-pf a:focus {
+  color: #bae6fd;
+}
+
+.pf-c-form-control,
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 10px;
+  color: #f8fafc;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.pf-c-form-control::placeholder,
+input::placeholder {
+  color: var(--theme3-muted);
+}
+
+.pf-c-form-control:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus {
+  border-color: var(--theme3-accent);
+  box-shadow: var(--theme3-focus);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.pf-c-button.pf-m-primary,
+#kc-login {
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(135deg, var(--theme3-accent), var(--theme3-accent-strong));
+  color: #082f49;
+  font-weight: 700;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+
+.pf-c-button.pf-m-primary:hover,
+#kc-login:hover {
+  filter: brightness(1.07);
+}
+
+.pf-c-button.pf-m-primary:active,
+#kc-login:active {
+  transform: translateY(1px);
+}
+
+.pf-c-check__label,
+label,
+#kc-form-options,
+#kc-info {
+  color: var(--theme3-muted);
+}
+
+#kc-form-options-wrapper {
+  border-top: 1px solid var(--theme3-border);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+
+.alert-error,
+.pf-c-alert.pf-m-danger {
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+}
+
+@media (max-width: 640px) {
+  #kc-content {
+    max-width: 94vw;
+  }
+
+  .card-pf {
+    border-radius: 12px;
+    box-shadow: 0 14px 40px rgba(2, 6, 23, 0.42);
+  }
+}

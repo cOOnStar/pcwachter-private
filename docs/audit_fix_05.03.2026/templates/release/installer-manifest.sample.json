@@ -1,0 +1,21 @@
+{
+  "product": "pcwaechter",
+  "channel": "stable",
+  "latest_version": "1.0.0",
+  "min_supported_version": "1.0.0",
+  "mandatory": false,
+  "released_at": "2026-03-05T00:00:00Z",
+  "assets": {
+    "offline_installer": {
+      "file": "PCWaechter-Offline-Setup.exe",
+      "sha256": "<FILL_ME>",
+      "size_bytes": 0
+    },
+    "live_installer": {
+      "file": "PCWaechter-Live-Installer.exe",
+      "sha256": "<FILL_ME>",
+      "size_bytes": 0
+    }
+  },
+  "changelog": ""
+}

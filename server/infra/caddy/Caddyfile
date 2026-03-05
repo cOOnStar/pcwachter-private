@@ -1,0 +1,106 @@
+# =============================================================================
+# PCWächter – Caddy Reverse Proxy
+# =============================================================================
+# Dieses Caddyfile dient als Referenz-Konfiguration für den öffentlichen
+# Reverse Proxy. Caddy stellt automatisch TLS-Zertifikate über Let's Encrypt
+# bereit und terminiert HTTPS.
+#
+# Voraussetzungen:
+#   - Caddy läuft im selben Docker-Netzwerk "pcwaechter-infra"
+#   - Alle Services laufen im Netzwerk und sind über ihren Container-Namen
+#     erreichbar (kein Port-Expose nötig wenn im selben Netzwerk)
+#
+# Nutzung mit Docker Compose (infra/caddy/docker-compose.yml):
+#   docker compose -f infra/caddy/docker-compose.yml up -d
+# =============================================================================
+
+# ── API Backend ───────────────────────────────────────────────────────────────
+api.xn--pcwchter-2za.de {
+    reverse_proxy api:8000
+
+    # Stripe Webhook darf kein komprimiertes Body erhalten
+    @webhook path /payments/webhook
+    request_body @webhook {
+        max_size 1MB
+    }
+
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /var/log/caddy/api.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}
+
+# ── Admin Console ─────────────────────────────────────────────────────────────
+console.xn--pcwchter-2za.de {
+    reverse_proxy pcwaechter-console:80
+
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        # CSP: erlaubt Keycloak für OIDC
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.xn--pcwchter-2za.de https://login.xn--pcwchter-2za.de; frame-src 'none'; img-src 'self' data:"
+    }
+
+    log {
+        output file /var/log/caddy/console.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}
+
+# ── Home Portal ───────────────────────────────────────────────────────────────
+home.xn--pcwchter-2za.de {
+    reverse_proxy pcwaechter-home:3000
+
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /var/log/caddy/home.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}
+
+# ── Billing (Alias → Home Portal /account/billing) ───────────────────────────
+# Kein eigener Service – Billing läuft als Seite im Home Portal.
+# Direktaufruf von billing.* leitet auf home.*/account/billing weiter.
+billing.xn--pcwchter-2za.de {
+    redir https://home.xn--pcwchter-2za.de/account/billing permanent
+}
+
+# ── Keycloak (Login) ──────────────────────────────────────────────────────────
+login.xn--pcwchter-2za.de {
+    reverse_proxy pcwaechter-keycloak-gateway:80
+
+    # Keycloak braucht größere Header für Tokens
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Port 443
+
+    # Großzügige Timeouts für Keycloak-Auth-Flows
+    transport http {
+        dial_timeout 30s
+        response_header_timeout 120s
+    }
+
+    log {
+        output file /var/log/caddy/login.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+}

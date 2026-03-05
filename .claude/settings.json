@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose -f infra/compose/docker-compose.yml --env-file ../.env exec -T postgres psql -U pcwaechter -d pcwaechter -c \"SELECT realm_id, client_id, name, enabled, public_client, standard_flow_enabled, direct_access_grants_enabled, service_accounts_enabled, bearer_only FROM client WHERE realm_id <> ''master'' ORDER BY client_id;\")",
+      "Bash(docker compose -f infra/compose/docker-compose.yml --env-file ../.env exec -T postgres psql -U pcwaechter -d pcwaechter -c \"SELECT realm_id, name, client_role, description FROM keycloak_role WHERE realm_id <> ''master'' ORDER BY realm_id, client_role, name;\")",
+      "Bash(docker compose -f infra/compose/docker-compose.yml --env-file ../.env exec -T postgres psql -U pcwaechter -d pcwaechter -c \":*)",
+      "Bash(docker exec pcw-keycloak //opt//keycloak//bin//kc.sh --version)",
+      "Bash(xargs grep -l -i keycloak)",
+      "Bash(xargs grep -l \"pcwaechter-prod\\\\|keycloak_realm\\\\|realmRepresentation\")",
+      "Bash(docker exec pcw-keycloak which bash)",
+      "Bash(docker exec pcw-keycloak bash --version)",
+      "Bash(docker exec pcw-keycloak bash -c \"echo test\")",
+      "Bash(docker exec pcw-keycloak bash -c \"set -o pipefail && echo ok\")",
+      "Bash(docker exec pcw-keycloak bash -c \"sed -i ''s/\\\\r//'' /tmp/provision-realm.sh && head -3 /tmp/provision-realm.sh\")",
+      "Bash(docker exec pcw-keycloak bash -c \"tr -d ''\\\\r'' < /tmp/provision-realm.sh > /tmp/provision-realm-unix.sh && chmod +x /tmp/provision-realm-unix.sh && head -5 /tmp/provision-realm-unix.sh\")",
+      "Bash(docker exec pcw-keycloak bash -c \"jq --version 2>/dev/null || echo ''no jq'' && python3 --version 2>/dev/null || echo ''no python3''\")",
+      "Bash(docker exec pcw-keycloak bash -c \":*)",
+      "Bash(curl -s http://localhost:18083/realms/pcwaechter-prod/protocol/openid-connect/certs)",
+      "Bash(docker cp \"C:/Users/Calvin/AppData/Local/Temp/kc-testuser.sh\" pcw-keycloak://tmp//kc-testuser.sh)",
+      "Bash(docker exec pcw-keycloak bash -c \"tr -d ''\\\\r'' < /tmp/kc-testuser.sh > /tmp/kc-testuser-unix.sh\")",
+      "Bash(docker exec pcw-keycloak bash //tmp//kc-testuser-unix.sh)",
+      "Bash(HOME_SECRET=\"6a1132cccd180c8a3abfc5528d7cf933439c9e93e76602f099fdbbd3d02e2768\")",
+      "Bash(curl -s -X POST \"http://localhost:18083/realms/pcwaechter-prod/protocol/openid-connect/token\" --data-urlencode \"grant_type=password\" --data-urlencode \"client_id=home\" --data-urlencode \"client_secret=$HOME_SECRET\" --data-urlencode \"username=testadmin\" --data-urlencode \"password=TestAdmin123!\")",
+      "Bash(docker exec pcw-keycloak bash -c \"curl -s -X POST http://localhost:8080/realms/pcwaechter-prod/protocol/openid-connect/token -d grant_type=password -d client_id=home -d ''client_secret=6a1132cccd180c8a3abfc5528d7cf933439c9e93e76602f099fdbbd3d02e2768'' -d username=testadmin -d ''password=TestAdmin123!''\")",
+      "Bash(docker exec pcw-keycloak wget -qO- --post-data=\"grant_type=password&client_id=home&client_secret=6a1132cccd180c8a3abfc5528d7cf933439c9e93e76602f099fdbbd3d02e2768&username=testadmin&password=TestAdmin123%21\" \"http://localhost:8080/realms/pcwaechter-prod/protocol/openid-connect/token\")",
+      "Bash(docker exec pcw-keycloak /opt/keycloak/bin/kcadm.sh get clients -r pcwaechter-prod --fields id,clientId,directAccessGrantsEnabled,publicClient,secret)",
+      "Bash(docker exec pcw-keycloak /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin_dev)",
+      "Bash(docker exec pcw-keycloak /opt/keycloak/bin/kcadm.sh get clients -r pcwaechter-prod -q clientId=home)",
+      "Bash(docker exec pcw-keycloak //opt//keycloak//bin//kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password admin_dev)",
+      "Bash(docker exec pcw-keycloak //opt//keycloak//bin//kcadm.sh get clients -r pcwaechter-prod -q clientId=home)",
+      "Bash(docker exec pcw-api python -c \":*)",
+      "Bash(bash server/deploy.sh console)",
+      "Bash(docker exec pcw-api python -c \"from app.main import app; routes = [r.path for r in app.routes]; print\\(''\\\\n''.join\\(r for r in routes if ''feature'' in r.lower\\(\\)\\)\\)\")",
+      "Bash(bash server/deploy.sh api)",
+      "Bash(curl -s http://localhost:18080/api/v1/console/ui/devices?limit=1 -H \"Authorization: Bearer test\")",
+      "Bash(docker exec pcw-postgres psql -U pcwaechter -d pcwaechter -c \":*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Calvin\\AppData\\Local\\Temp",
+      "c:\\Users\\Calvin\\Documents\\PCWächter\\server\\api\\alembic"
+    ]
+  }
+}

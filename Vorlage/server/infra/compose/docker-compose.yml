@@ -1,0 +1,239 @@
+version: "3.9"
+
+# PCWächter Deploy Skeleton (prod-like)
+# - Designed to run behind Nginx Proxy Manager (NPM) with TLS termination.
+# - Uses internal docker network; expose only what NPM needs.
+# - Secrets/credentials are placeholders: fill via .env
+
+networks:
+  pcw-internal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  keycloak_data:
+  zammad_data:
+  zammad_db_data:
+  zammad_redis_data:
+  exports_data:
+  uploads_data:
+
+services:
+  # -------------------------
+  # PostgreSQL (PCWächter)
+  # -------------------------
+  postgres:
+    image: postgres:17
+    container_name: pcw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PCW_POSTGRES_DB}
+      POSTGRES_USER: ${PCW_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${PCW_POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - pcw-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PCW_POSTGRES_USER} -d ${PCW_POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # -------------------------
+  # Keycloak (Identity)
+  # -------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.4
+    container_name: pcw-keycloak
+    restart: unless-stopped
+    command: ["start", "--proxy-headers=xforwarded", "--hostname-strict=false", "--http-enabled=true"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${KC_DB_HOST}:${KC_DB_PORT}/${KC_DB_NAME}
+      KC_DB_USERNAME: ${KC_DB_USER}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+
+      KEYCLOAK_ADMIN: ${KC_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_PROXY: edge
+      KC_HTTP_ENABLED: "true"
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL}
+    networks:
+      - pcw-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # IMPORTANT: Keycloak will be published via NPM to https://login.pcwächter.de
+    # Do not expose ports publicly in prod; NPM should route to this container internally.
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # FastAPI Backend
+  # -------------------------
+  api:
+    image: ${PCW_API_IMAGE}
+    container_name: pcw-api
+    restart: unless-stopped
+    environment:
+      # Database
+      DATABASE_URL: ${PCW_DATABASE_URL}
+
+      # Keycloak JWT validation
+      KEYCLOAK_ISSUER: ${PCW_KEYCLOAK_ISSUER}
+      KEYCLOAK_JWKS_URL: ${PCW_KEYCLOAK_JWKS_URL}
+      KEYCLOAK_AUDIENCE: ${PCW_KEYCLOAK_AUDIENCE}
+
+      # CORS
+      CORS_ORIGINS: ${PCW_CORS_ORIGINS}
+
+      # Feature/Rules defaults
+      LOG_LEVEL: ${PCW_LOG_LEVEL}
+      RATE_LIMIT_ENABLED: ${PCW_RATE_LIMIT_ENABLED}
+
+      # Stripe
+      STRIPE_SECRET_KEY: ${PCW_STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${PCW_STRIPE_WEBHOOK_SECRET}
+
+      # Zammad (headless proxy)
+      ZAMMAD_BASE_URL: ${PCW_ZAMMAD_BASE_URL}
+      ZAMMAD_API_TOKEN: ${PCW_ZAMMAD_API_TOKEN}
+      ZAMMAD_WEBHOOK_SECRET: ${PCW_ZAMMAD_WEBHOOK_SECRET}
+
+      # Storage for exports/uploads
+      EXPORT_DIR: /data/exports
+      UPLOAD_DIR: /data/uploads
+
+      # Update manifest / downloads
+      CDN_BASE_URL: ${PCW_CDN_BASE_URL}
+    volumes:
+      - exports_data:/data/exports
+      - uploads_data:/data/uploads
+    networks:
+      - pcw-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Kundenportal (Next.js)
+  # -------------------------
+  home:
+    image: ${PCW_HOME_IMAGE}
+    container_name: pcw-home
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE: ${PCW_NEXT_PUBLIC_API_BASE}
+      NEXT_PUBLIC_KEYCLOAK_URL: ${PCW_NEXT_PUBLIC_KEYCLOAK_URL}
+      NEXT_PUBLIC_KEYCLOAK_REALM: ${PCW_NEXT_PUBLIC_KEYCLOAK_REALM}
+      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${PCW_NEXT_PUBLIC_KEYCLOAK_CLIENT_ID}
+
+      # If you use server-side OIDC (recommended), keep secret server-side only:
+      KEYCLOAK_CLIENT_SECRET: ${PCW_HOME_KEYCLOAK_CLIENT_SECRET}
+      SESSION_SECRET: ${PCW_HOME_SESSION_SECRET}
+    networks:
+      - pcw-internal
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Admin Console (React SPA)
+  # -------------------------
+  console:
+    image: ${PCW_CONSOLE_IMAGE}
+    container_name: pcw-console
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE: ${PCW_VITE_API_BASE}
+      VITE_KEYCLOAK_URL: ${PCW_VITE_KEYCLOAK_URL}
+      VITE_KEYCLOAK_REALM: ${PCW_VITE_KEYCLOAK_REALM}
+      VITE_KEYCLOAK_CLIENT_ID: ${PCW_VITE_KEYCLOAK_CLIENT_ID}
+    networks:
+      - pcw-internal
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  # -------------------------
+  # Zammad (optional, for headless tickets)
+  # NOTE: Zammad has multiple official deployment options.
+  # This is a minimal placeholder stack (zammad + postgres + redis) to self-host.
+  # -------------------------
+  zammad-db:
+    image: postgres:15
+    container_name: pcw-zammad-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${ZAMMAD_POSTGRES_DB}
+      POSTGRES_USER: ${ZAMMAD_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ZAMMAD_POSTGRES_PASSWORD}
+    volumes:
+      - zammad_db_data:/var/lib/postgresql/data
+    networks:
+      - pcw-internal
+
+  zammad-redis:
+    image: redis:7
+    container_name: pcw-zammad-redis
+    restart: unless-stopped
+    volumes:
+      - zammad_redis_data:/data
+    networks:
+      - pcw-internal
+
+  zammad:
+    image: zammad/zammad:latest
+    container_name: pcw-zammad
+    restart: unless-stopped
+    environment:
+      ZAMMAD_RAILS_PORT: "3001"
+      ZAMMAD_HOSTNAME: ${ZAMMAD_HOSTNAME}
+      ZAMMAD_HTTP_TYPE: "http"
+      # DB/Redis
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD}
+      REDIS_URL: "redis://zammad-redis:6379"
+    volumes:
+      - zammad_data:/opt/zammad
+    networks:
+      - pcw-internal
+    depends_on:
+      - zammad-db
+      - zammad-redis
+    ports:
+      - "3001:3001"
