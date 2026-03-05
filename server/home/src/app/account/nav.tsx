@@ -16,6 +16,7 @@ export default function AccountNav() {
 
   return (
     <nav
+      className="account-nav"
       style={{
         width: 200,
         flexShrink: 0,

@@ -434,7 +434,6 @@ async def reply_ticket(
 
 
 @router.post("/attachments")
-@limiter.limit("120/minute")
 async def upload_attachment(
     request: Request,
     file: UploadFile = File(...),

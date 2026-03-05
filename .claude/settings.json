@@ -122,7 +122,13 @@
       "Bash(docker compose --env-file ../../../.env build home)",
       "Bash(docker compose --env-file ../../../.env up -d home)",
       "Bash(docker ps --filter name=pcw-home --format \"{{.Names}}: {{.Status}}\")",
-      "Bash(docker ps --filter name=pcw-api --format \"{{.Names}}: {{.Status}}\")"
+      "Bash(docker ps --filter name=pcw-api --format \"{{.Names}}: {{.Status}}\")",
+      "Bash(docker inspect pcw-api --format '{{index .Config.Labels \"\"com.docker.compose.project.config_files\"\"}}')",
+      "Bash(docker compose build api home)",
+      "Bash(docker compose up -d api home)",
+      "Bash(docker compose build api)",
+      "Bash(docker compose --env-file \"../../../.env\" up -d api home)",
+      "Bash(docker ps --filter \"name=pcw-api\" --filter \"name=pcw-home\" --format \"table {{.Names}}\\\\t{{.Status}}\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",

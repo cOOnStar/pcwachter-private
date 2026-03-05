@@ -16,7 +16,7 @@ export default async function AccountLayout({
   return (
     <div style={{ padding: "3rem 0" }}>
       <div className="container">
-        <div style={{ display: "flex", gap: "2.5rem", alignItems: "flex-start" }}>
+        <div className="account-shell">
           <AccountNav />
           <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
         </div>

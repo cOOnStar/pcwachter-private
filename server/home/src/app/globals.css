@@ -90,3 +90,32 @@ a {
 .badge-green { background: #14532d; color: #4ade80; }
 .badge-yellow { background: #4a3200; color: #fde047; }
 .badge-red { background: #450a0a; color: #f87171; }
+
+.account-shell {
+  display: flex;
+  gap: 2.5rem;
+  align-items: flex-start;
+}
+
+.account-overview-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .account-shell {
+    flex-direction: column;
+  }
+
+  .account-nav {
+    width: 100% !important;
+    position: static !important;
+    top: auto !important;
+  }
+
+  .account-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}

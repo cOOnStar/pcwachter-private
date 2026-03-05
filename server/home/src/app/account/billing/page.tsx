@@ -167,8 +167,7 @@ export default function BillingPage() {
   useEffect(() => {
     if (!showPlans) return;
     setPlansLoading(true);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://api.xn--pcwchter-2za.de";
-    fetch(`${apiUrl}/console/public/plans`)
+    fetch("/api/plans")
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((d) => {
         const sorted = ((d.items ?? []) as PlanItem[])
