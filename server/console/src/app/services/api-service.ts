@@ -580,6 +580,115 @@ export async function diagZammadUser(email: string): Promise<{ zammad_user_id: n
   return api(`/support/admin/diag/zammad-user?email=${encodeURIComponent(email)}`);
 }
 
+// ── Update Manifests ──────────────────────────────────────────────────────────
+
+export interface UpdateManifest {
+  id: string;
+  component: "desktop" | "agent" | "updater";
+  channel: "stable" | "beta" | "internal";
+  latest_version: string;
+  min_supported_version: string | null;
+  mandatory: boolean;
+  download_url: string;
+  sha256: string | null;
+  changelog: string | null;
+  released_at: string;
+  updated_at: string;
+  updated_by_admin_id: string | null;
+}
+
+export async function getUpdateManifests(): Promise<UpdateManifest[]> {
+  return api("/console/ui/updates/manifests");
+}
+
+export async function upsertUpdateManifest(
+  component: string,
+  channel: string,
+  data: Omit<UpdateManifest, "id" | "component" | "channel" | "updated_at" | "updated_by_admin_id">
+): Promise<UpdateManifest> {
+  return api(`/console/ui/updates/manifests/${encodeURIComponent(component)}/${encodeURIComponent(channel)}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Rules ─────────────────────────────────────────────────────────────────────
+
+export interface RuleItem {
+  id: string;
+  name: string;
+  category: string;
+  severity: "critical" | "warning" | "info";
+  enabled: boolean;
+  conditions: unknown[];
+  recommendations: Record<string, unknown>;
+  rollout_percent: number;
+  min_client_version: string | null;
+  max_client_version: string | null;
+  platform: string;
+  notes: string | null;
+  updated_at: string;
+  updated_by_admin_id: string | null;
+}
+
+export interface FindingItem {
+  id: string;
+  device_id: string;
+  device_hostname: string;
+  rule_id: string;
+  rule_name: string;
+  rule_severity: string;
+  state: "open" | "resolved" | "ignored";
+  details: Record<string, unknown>;
+  created_at: string;
+  resolved_at: string | null;
+  updated_at: string;
+}
+
+export async function getRules(): Promise<PagedResponse<RuleItem>> {
+  return api("/console/ui/rules");
+}
+
+export async function upsertRule(ruleId: string, data: Omit<RuleItem, "id" | "updated_at" | "updated_by_admin_id">): Promise<RuleItem> {
+  return api(`/console/ui/rules/${encodeURIComponent(ruleId)}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function patchRule(ruleId: string, data: Partial<Pick<RuleItem, "enabled" | "severity" | "notes">>): Promise<RuleItem> {
+  return api(`/console/ui/rules/${encodeURIComponent(ruleId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteRule(ruleId: string): Promise<{ ok: boolean }> {
+  return api(`/console/ui/rules/${encodeURIComponent(ruleId)}`, { method: "DELETE" });
+}
+
+export async function getRuleFindings(params?: {
+  state?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<FindingItem>> {
+  const q = new URLSearchParams();
+  if (params?.state) q.set("state", params.state);
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/rules/findings?${q}`);
+}
+
+export async function patchRuleFinding(
+  findingId: string,
+  data: { state: "open" | "resolved" | "ignored" }
+): Promise<FindingItem> {
+  return api(`/console/ui/rules/findings/${encodeURIComponent(findingId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 // ── Device Update Channel ─────────────────────────────────────────────────────
 
 export async function setDeviceUpdateChannel(

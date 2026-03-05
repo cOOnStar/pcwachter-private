@@ -304,3 +304,101 @@ class Notification(Base):
     meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class RulesCatalog(Base):
+    """Rule-based intelligence: defines conditions + recommendations per category."""
+
+    __tablename__ = "rules_catalog"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # slug, e.g. "cpu_high_sustained"
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    # "performance" | "security" | "health" | "update" | "storage"
+    severity: Mapped[str] = mapped_column(String(16), nullable=False, default="warning", server_default="warning")
+    # "critical" | "warning" | "info"
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # conditions: list of threshold checks against telemetry payload values
+    # e.g. [{"metric": "cpu_percent", "operator": ">", "threshold": 90}]
+    conditions: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    # recommendations: {text: str, actions: [str]}
+    recommendations: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    rollout_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=100, server_default="100")
+    min_client_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    max_client_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    platform: Mapped[str] = mapped_column(String(32), nullable=False, default="all", server_default="all")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    updated_by_admin_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+    findings: Mapped[list["RuleFinding"]] = relationship(back_populates="rule", cascade="all, delete-orphan")
+
+
+class RuleFinding(Base):
+    """Active finding: a rule was triggered for a specific device."""
+
+    __tablename__ = "rule_findings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=False, index=True)
+    rule_id: Mapped[str] = mapped_column(String(64), ForeignKey("rules_catalog.id"), nullable=False, index=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False, default="open", index=True)
+    # "open" | "resolved" | "ignored"
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    rule: Mapped["RulesCatalog"] = relationship(back_populates="findings")
+
+    __table_args__ = (
+        UniqueConstraint("device_id", "rule_id", name="uq_rule_findings_device_rule"),
+    )
+
+
+class DeviceCommand(Base):
+    """Remote command issued to a device; agent polls and executes."""
+
+    __tablename__ = "device_commands"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=False, index=True)
+    command: Mapped[str] = mapped_column(String(64), nullable=False)
+    # e.g. "restart_agent", "run_scan", "update_agent", "clear_findings"
+    payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending", index=True)
+    # "pending" | "sent" | "done" | "failed" | "cancelled"
+    issued_by_admin_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
+class ClientConfig(Base):
+    """Remote configuration delivered to agents/clients on startup/poll."""
+
+    __tablename__ = "client_config"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scope: Mapped[str] = mapped_column(String(32), nullable=False, default="global", server_default="global")
+    # "global" | "device" | "user"
+    scope_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # NULL for global; device_install_id for device scope; keycloak_user_id for user scope
+    config: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+    updated_by_admin_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("scope", "scope_id", name="uq_client_config_scope_scope_id"),
+        CheckConstraint(
+            "(scope = 'global' AND scope_id IS NULL) OR (scope != 'global' AND scope_id IS NOT NULL)",
+            name="ck_client_config_scope_scope_id",
+        ),
+    )

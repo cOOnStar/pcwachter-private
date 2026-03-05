@@ -15,11 +15,15 @@ from .db import Base, engine
 from .routers.admin import router as admin_router
 from .routers.agent import router as agent_router
 from .routers.client import router as client_router
+from .routers.commands import router as commands_router
 from .routers.console import router as console_router
 from .routers.features import router as features_router
 from .routers.license import router as license_router
+from .routers.me import router as me_router
 from .routers.notifications import router as notifications_router
 from .routers.payments import router as payments_router
+from .routers.reports import router as reports_router
+from .routers.rules import router as rules_router
 from .routers.support import router as support_router
 from .routers.telemetry import router as telemetry_router
 from .routers.updates import router as updates_router
@@ -207,12 +211,16 @@ def health():
 _v1 = APIRouter(prefix="/api/v1")
 _v1.include_router(agent_router)
 _v1.include_router(client_router)
+_v1.include_router(commands_router)
 _v1.include_router(console_router)
 _v1.include_router(features_router)
+_v1.include_router(me_router)
 _v1.include_router(telemetry_router)
 _v1.include_router(admin_router)
 _v1.include_router(license_router)
 _v1.include_router(payments_router)
+_v1.include_router(reports_router)
+_v1.include_router(rules_router)
 _v1.include_router(support_router)
 _v1.include_router(notifications_router)
 _v1.include_router(updates_router)
@@ -223,12 +231,16 @@ app.include_router(_v1)
 # ---------------------------------------------------------------------------
 app.include_router(agent_router)
 app.include_router(client_router)
+app.include_router(commands_router)
 app.include_router(console_router)
 app.include_router(features_router)
+app.include_router(me_router)
 app.include_router(telemetry_router)
 app.include_router(admin_router)
 app.include_router(license_router)
 app.include_router(payments_router)
+app.include_router(reports_router)
+app.include_router(rules_router)
 app.include_router(support_router)
 app.include_router(notifications_router)
 app.include_router(updates_router)

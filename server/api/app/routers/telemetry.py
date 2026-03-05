@@ -8,6 +8,7 @@ from ..db import get_db
 from ..models import Device, TelemetrySnapshot
 from ..schemas import OkResponse, TelemetrySnapshotIngestRequest, TelemetryUpdateRequest
 from ..security import require_api_key
+from .rules import evaluate_rules_for_device
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"], dependencies=[Depends(require_api_key)])
 
@@ -71,6 +72,12 @@ def ingest_snapshot(payload: TelemetrySnapshotIngestRequest, db: Session = Depen
             source=payload.source,
         )
     )
+
+    db.flush()
+    try:
+        evaluate_rules_for_device(db, device.id, payload.category, payload.payload or {})
+    except Exception:
+        pass  # Rule evaluation must never block telemetry ingest
 
     db.commit()
     return OkResponse(ok=True)

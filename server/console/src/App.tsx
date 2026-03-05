@@ -19,6 +19,8 @@ import SupportPage from "./app/pages/SupportPage";
 import SupportTicketDetailPage from "./app/pages/SupportTicketDetailPage";
 import PlanDetailPage from "./app/pages/PlanDetailPage";
 import SubscriptionsPage from "./app/pages/SubscriptionsPage";
+import UpdatesPage from "./app/pages/UpdatesPage";
+import RulesPage from "./app/pages/RulesPage";
 
 export default function App() {
   const { ready, authenticated, isAdmin } = useAuth();
@@ -57,6 +59,8 @@ export default function App() {
             {isAdmin() && <Route path="/plans" element={<PlansPage />} />}
             {isAdmin() && <Route path="/plans/:planId" element={<PlanDetailPage />} />}
             {isAdmin() && <Route path="/subscriptions" element={<SubscriptionsPage />} />}
+            {isAdmin() && <Route path="/updates" element={<UpdatesPage />} />}
+            <Route path="/rules" element={<RulesPage />} />
             <Route path="/features" element={<FeatureRolloutsPage />} />
             <Route path="/audit" element={<AuditLogPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />

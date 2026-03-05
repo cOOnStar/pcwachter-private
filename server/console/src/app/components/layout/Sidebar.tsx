@@ -15,6 +15,8 @@ import {
   Activity,
   BookOpen,
   HeadphonesIcon,
+  Download,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { cn } from "@/lib/utils";
@@ -34,6 +36,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/accounts", label: "Accounts", icon: <Users className="w-4 h-4" /> },
   { path: "/plans", label: "Pläne", icon: <CreditCard className="w-4 h-4" />, adminOnly: true },
   { path: "/subscriptions", label: "Abonnements", icon: <Receipt className="w-4 h-4" />, adminOnly: true },
+  { path: "/updates", label: "Updates", icon: <Download className="w-4 h-4" />, adminOnly: true },
+  { path: "/rules", label: "Regeln & Findings", icon: <ShieldAlert className="w-4 h-4" /> },
   { path: "/features", label: "Feature Rollouts", icon: <ToggleLeft className="w-4 h-4" /> },
   { path: "/audit", label: "Audit Log", icon: <ClipboardList className="w-4 h-4" /> },
   { path: "/notifications", label: "Benachrichtigungen", icon: <Bell className="w-4 h-4" /> },
