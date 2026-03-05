@@ -38,7 +38,7 @@ def upgrade() -> None:
     op.create_table(
         "subscriptions",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, nullable=False),
-        sa.Column("keycloak_user_id", sa.String(128), nullable=False, index=True),
+        sa.Column("keycloak_user_id", sa.String(128), nullable=False),
         sa.Column("license_id", UUID(as_uuid=True), sa.ForeignKey("licenses.id"), nullable=True),
         sa.Column("plan_id", sa.String(32), sa.ForeignKey("plans.id"), nullable=True),
         sa.Column("status", sa.String(24), nullable=False, server_default=sa.text("'active'")),

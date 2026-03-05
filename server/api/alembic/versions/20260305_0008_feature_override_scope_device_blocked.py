@@ -59,10 +59,11 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     # devices: add blocked flag
     # ------------------------------------------------------------------
-    op.add_column(
-        "devices",
-        sa.Column("blocked", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-    )
+    if not _column_exists("devices", "blocked"):
+        op.add_column(
+            "devices",
+            sa.Column("blocked", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        )
 
 
 def downgrade() -> None:
@@ -78,3 +79,20 @@ def downgrade() -> None:
 
     # Restore the original simple unique constraint.
     op.create_unique_constraint("feature_overrides_feature_key_key", "feature_overrides", ["feature_key"])
+
+
+def _column_exists(table_name: str, column_name: str) -> bool:
+    bind = op.get_bind()
+    result = bind.execute(
+        sa.text(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = :table_name
+              AND column_name = :column_name
+            LIMIT 1
+            """
+        ),
+        {"table_name": table_name, "column_name": column_name},
+    )
+    return result.first() is not None
