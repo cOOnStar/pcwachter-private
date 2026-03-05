@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ShieldOff, ShieldCheck } from "lucide-react";
-import { getDeviceDetail, blockDevice, unblockDevice } from "../services/api-service";
+import { getDeviceDetail, blockDevice, unblockDevice, setDeviceUpdateChannel } from "../services/api-service";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageHeader from "../components/shared/PageHeader";
 import ErrorBanner from "../components/shared/ErrorBanner";
 import { useAuth } from "../context/auth-context";
@@ -19,6 +20,7 @@ export default function DeviceDetailPage() {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState(false);
+  const [channelLoading, setChannelLoading] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["device-detail", deviceId],
@@ -53,6 +55,20 @@ export default function DeviceDetailPage() {
       toast({ title: "Fehler", description: String(e), variant: "destructive" });
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function handleChannelChange(channel: string) {
+    if (!deviceId) return;
+    setChannelLoading(true);
+    try {
+      await setDeviceUpdateChannel(deviceId, channel as "stable" | "beta" | "internal");
+      toast({ title: "Update-Channel gesetzt", description: channel, variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["device-detail", deviceId] });
+    } catch (e: unknown) {
+      toast({ title: "Fehler", description: String(e), variant: "destructive" });
+    } finally {
+      setChannelLoading(false);
     }
   }
 
@@ -120,7 +136,6 @@ export default function DeviceDetailPage() {
                       ["Agent-Channel", data.agentChannel],
                       ["Desktop-Version", data.desktopVersion],
                       ["Updater-Version", data.updaterVersion],
-                      ["Update-Channel", data.updateChannel],
                       ["IP-Adresse", data.ip],
                       ["Online", data.online ? "Ja" : "Nein"],
                       ["Zuletzt gesehen", formatRelative(data.lastSeen)],
@@ -131,6 +146,27 @@ export default function DeviceDetailPage() {
                         <p className="text-sm text-[var(--text-primary)] font-mono">{value || "–"}</p>
                       </div>
                     ))}
+                    <div>
+                      <p className="text-[0.7rem] text-[var(--text-muted)] uppercase tracking-wider mb-1">Update-Channel</p>
+                      {isAdmin() ? (
+                        <Select
+                          value={data.updateChannel ?? "stable"}
+                          onValueChange={handleChannelChange}
+                          disabled={channelLoading}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-36">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="stable">stable</SelectItem>
+                            <SelectItem value="beta">beta</SelectItem>
+                            <SelectItem value="internal">internal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="text-sm text-[var(--text-primary)] font-mono">{data.updateChannel || "–"}</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

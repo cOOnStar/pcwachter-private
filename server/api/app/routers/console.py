@@ -1766,6 +1766,45 @@ def ui_unblock_device(
 
 
 # ---------------------------------------------------------------------------
+# Device update-channel override
+# ---------------------------------------------------------------------------
+
+VALID_UPDATE_CHANNELS = {"stable", "beta", "internal"}
+
+
+class UpdateChannelRequest(BaseModel):
+    update_channel: str = Field(min_length=1, max_length=32)
+
+
+@router.patch("/ui/devices/{device_id}/update-channel")
+def ui_set_device_update_channel(
+    device_id: str,
+    payload: UpdateChannelRequest,
+    db: Session = Depends(get_db),
+    _owner: dict = Depends(require_console_owner),
+):
+    """Override the update channel for a device (stable|beta|internal)."""
+    channel = payload.update_channel.strip().lower()
+    if channel not in VALID_UPDATE_CHANNELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"invalid update_channel; allowed: {', '.join(sorted(VALID_UPDATE_CHANNELS))}",
+        )
+
+    device = db.execute(
+        select(Device).where(
+            or_(cast(Device.id, String) == device_id.strip(), Device.device_install_id == device_id.strip())
+        )
+    ).scalar_one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="device not found")
+
+    device.update_channel = channel
+    db.commit()
+    return {"ok": True, "deviceId": str(device.id), "update_channel": device.update_channel}
+
+
+# ---------------------------------------------------------------------------
 # License: generate (alias) + revoke (POST) + block/unblock + PATCH
 # ---------------------------------------------------------------------------
 

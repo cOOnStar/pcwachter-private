@@ -13,6 +13,10 @@ import FeatureRolloutsPage from "./app/pages/FeatureRolloutsPage";
 import AuditLogPage from "./app/pages/AuditLogPage";
 import NotificationsPage from "./app/pages/NotificationsPage";
 import ServerPage from "./app/pages/ServerPage";
+import ActivityFeedPage from "./app/pages/ActivityFeedPage";
+import KnowledgeBasePage from "./app/pages/KnowledgeBasePage";
+import SupportPage from "./app/pages/SupportPage";
+import SupportTicketDetailPage from "./app/pages/SupportTicketDetailPage";
 
 export default function App() {
   const { ready, authenticated, isAdmin } = useAuth();
@@ -53,6 +57,10 @@ export default function App() {
             <Route path="/audit" element={<AuditLogPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/server" element={<ServerPage />} />
+            <Route path="/activity" element={<ActivityFeedPage />} />
+            <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/support/:ticketId" element={<SupportTicketDetailPage />} />
             <Route path="*" element={<DashboardPage />} />
           </Routes>
         </main>

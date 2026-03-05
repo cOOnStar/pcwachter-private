@@ -11,6 +11,9 @@ import {
   Bell,
   Server,
   LogOut,
+  Activity,
+  BookOpen,
+  HeadphonesIcon,
 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { cn } from "@/lib/utils";
@@ -33,6 +36,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/audit", label: "Audit Log", icon: <ClipboardList className="w-4 h-4" /> },
   { path: "/notifications", label: "Benachrichtigungen", icon: <Bell className="w-4 h-4" /> },
   { path: "/server", label: "Server", icon: <Server className="w-4 h-4" /> },
+  { path: "/activity", label: "Activity Feed", icon: <Activity className="w-4 h-4" /> },
+  { path: "/knowledge-base", label: "Knowledge Base", icon: <BookOpen className="w-4 h-4" /> },
+  { path: "/support", label: "Support", icon: <HeadphonesIcon className="w-4 h-4" /> },
 ];
 
 export default function Sidebar() {

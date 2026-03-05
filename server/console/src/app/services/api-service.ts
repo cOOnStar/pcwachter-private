@@ -388,3 +388,129 @@ export async function getHostInfo(): Promise<HostInfo> {
 export async function search(q: string): Promise<{ items: unknown[]; total: number; query: string }> {
   return api(`/console/ui/search?q=${encodeURIComponent(q)}`);
 }
+
+// ── Activity Feed ─────────────────────────────────────────────────────────────
+
+export async function getActivityFeed(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<ActivityItem>> {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/activity-feed?${q}`);
+}
+
+// ── Knowledge Base ────────────────────────────────────────────────────────────
+
+export interface KbArticle {
+  id: string;
+  title: string;
+  category: string;
+  tags: string[];
+  updated_at: string;
+  summary?: string;
+}
+
+export async function getKnowledgeBase(params?: {
+  search?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<PagedResponse<KbArticle>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.category) q.set("category", params.category);
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
+  return api(`/console/ui/knowledge-base?${q}`);
+}
+
+// ── Support ───────────────────────────────────────────────────────────────────
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  state: string;
+  priority: string;
+  created_at: string;
+  updated_at: string;
+  customer_name?: string;
+  customer_email?: string;
+}
+
+export interface SupportTicketDetail extends SupportTicket {
+  description?: string;
+  replies: SupportReply[];
+  attachments: SupportAttachment[];
+}
+
+export interface SupportReply {
+  id: string;
+  body: string;
+  author: string;
+  created_at: string;
+  internal: boolean;
+}
+
+export interface SupportAttachment {
+  id: string;
+  filename: string;
+  size: number;
+  created_at: string;
+}
+
+export async function listSupportTickets(params?: {
+  all?: boolean;
+  page?: number;
+  perPage?: number;
+}): Promise<PagedResponse<SupportTicket>> {
+  const q = new URLSearchParams();
+  if (params?.all) q.set("all", "true");
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.perPage) q.set("per_page", String(params.perPage));
+  return api(`/support/tickets?${q}`);
+}
+
+export async function getSupportTicket(id: string): Promise<SupportTicketDetail> {
+  return api(`/support/tickets/${encodeURIComponent(id)}`);
+}
+
+export async function replySupportTicket(id: string, body: string): Promise<{ ok: boolean }> {
+  return api(`/support/tickets/${encodeURIComponent(id)}/reply`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export async function uploadSupportAttachment(file: File): Promise<{ id: string; filename: string }> {
+  const token = await getKeycloakToken();
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE}/support/attachments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw Object.assign(new Error(`${res.status} ${text || res.statusText}`), { status: res.status });
+  }
+  return res.json();
+}
+
+export async function diagZammadRoles(): Promise<{ roles: string[]; user_id?: string }> {
+  return api("/support/admin/diag/zammad-roles");
+}
+
+// ── Device Update Channel ─────────────────────────────────────────────────────
+
+export async function setDeviceUpdateChannel(
+  deviceId: string,
+  channel: "stable" | "beta" | "internal"
+): Promise<{ ok: boolean; update_channel: string }> {
+  return api(`/console/ui/devices/${encodeURIComponent(deviceId)}/update-channel`, {
+    method: "PATCH",
+    body: JSON.stringify({ update_channel: channel }),
+  });
+}
