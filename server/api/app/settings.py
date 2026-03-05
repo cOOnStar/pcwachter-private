@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_ENABLED: bool = True
+    STRIPE_CURRENCY_DEFAULT: str = "eur"
 
 
 settings = Settings()

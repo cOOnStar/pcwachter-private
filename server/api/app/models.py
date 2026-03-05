@@ -21,6 +21,10 @@ class Plan(Base):
     feature_flags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)   # {"auto_fix": true, ...}
     grace_period_days: Mapped[int] = mapped_column(Integer, nullable=False, default=7)
     stripe_price_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    stripe_product_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    amount_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    currency: Mapped[str] = mapped_column(String(8), nullable=False, default="eur", server_default="eur")
+    price_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

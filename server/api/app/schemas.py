@@ -276,6 +276,36 @@ class PlanUpsertRequestExtended(PlanUpsertRequest):
 
 
 # ---------------------------------------------------------------------------
+# Stripe price publish (admin)
+# ---------------------------------------------------------------------------
+
+class PublishPriceRequest(BaseModel):
+    mode: Literal["A"] = "A"
+    dry_run: bool = False
+
+
+class PublishPriceResponse(BaseModel):
+    plan_id: str
+    old_price_id: str | None
+    new_price_id: str
+    migrated: int
+    failed: int
+    failed_subscription_ids: list[str]
+    mode: str
+    took_ms: int
+
+
+class StripePlanStatusResponse(BaseModel):
+    plan_id: str
+    stripe_product_id: str | None
+    stripe_price_id: str | None
+    price_version: int
+    amount_cents: int | None
+    currency: str
+    count_active_subs: int
+
+
+# ---------------------------------------------------------------------------
 # Stripe / Payments
 # ---------------------------------------------------------------------------
 

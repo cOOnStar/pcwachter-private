@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     metadata: {
       keycloak_user_id: session.userId,
       plan_id,
+      plan_version: String(plan.price_version ?? 1),
     },
     success_url: `${origin}/account?success=1`,
     cancel_url: `${origin}/account/billing?cancelled=1`,

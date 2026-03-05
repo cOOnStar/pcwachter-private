@@ -24,6 +24,9 @@ from ..schemas import (
     PlanListResponseExtended,
     PlanUpsertRequest,
     PlanUpsertRequestExtended,
+    PublishPriceRequest,
+    PublishPriceResponse,
+    StripePlanStatusResponse,
 )
 from ..security import require_api_key
 from ..security_jwt import require_console_owner, require_console_user, require_home_user
@@ -1166,6 +1169,120 @@ def ui_upsert_plan(
     db.refresh(plan)
 
     return _plan_to_item(plan)
+
+
+# ---------------------------------------------------------------------------
+# Plan Stripe price publish / status
+# ---------------------------------------------------------------------------
+
+from ..services.stripe_service import (
+    create_new_price_for_plan,
+    ensure_product_for_plan,
+    migrate_subscriptions_to_price,
+)
+
+
+@router.post("/ui/plans/{plan_id}/publish-price", response_model=PublishPriceResponse)
+def ui_publish_plan_price(
+    plan_id: str,
+    payload: PublishPriceRequest,
+    db: Session = Depends(get_db),
+    _owner: dict = Depends(require_console_owner),
+):
+    """
+    Publish a new Stripe Price for the plan and migrate all active subscriptions
+    to it (Mode A: new price takes effect at next renewal – proration_behavior=none).
+
+    Prerequisites:
+    - plan.amount_cents must be set
+    - plan.is_active must be True
+    - STRIPE_SECRET_KEY must be configured
+    """
+    import logging as _logging
+
+    _log = _logging.getLogger("pcw.console.publish_price")
+
+    if not settings.STRIPE_SECRET_KEY:
+        raise HTTPException(status_code=503, detail="Stripe not configured (STRIPE_SECRET_KEY missing)")
+
+    plan = db.get(Plan, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="plan not found")
+    if not plan.is_active:
+        raise HTTPException(status_code=400, detail="plan is not active")
+    if not plan.amount_cents or plan.amount_cents <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="plan.amount_cents must be set and > 0 before publishing a Stripe price",
+        )
+
+    old_price_id: str | None = plan.stripe_price_id
+
+    if payload.dry_run:
+        return PublishPriceResponse(
+            plan_id=plan_id,
+            old_price_id=old_price_id,
+            new_price_id="(dry-run)",
+            migrated=0,
+            failed=0,
+            failed_subscription_ids=[],
+            mode=payload.mode,
+            took_ms=0,
+        )
+
+    try:
+        new_price_id = create_new_price_for_plan(plan, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        _log.exception("Stripe price creation failed for plan %s", plan_id)
+        raise HTTPException(status_code=502, detail=f"Stripe error: {exc}") from exc
+
+    summary = migrate_subscriptions_to_price(plan, new_price_id, old_price_id, db)
+
+    return PublishPriceResponse(
+        plan_id=plan_id,
+        old_price_id=old_price_id,
+        new_price_id=new_price_id,
+        migrated=summary.migrated_count,
+        failed=summary.failed_count,
+        failed_subscription_ids=summary.failed_subscription_ids,
+        mode=payload.mode,
+        took_ms=summary.took_ms,
+    )
+
+
+@router.get("/ui/plans/{plan_id}/stripe-status", response_model=StripePlanStatusResponse)
+def ui_plan_stripe_status(
+    plan_id: str,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_console_user),
+):
+    """Return Stripe product/price info and active subscription count for a plan."""
+    from ..models import Subscription as _Sub
+
+    plan = db.get(Plan, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="plan not found")
+
+    active_statuses = {"active", "trialing", "past_due"}
+    count_active = db.execute(
+        select(func.count(_Sub.id)).where(
+            _Sub.plan_id == plan_id,
+            _Sub.stripe_subscription_id.isnot(None),
+            _Sub.status.in_(active_statuses),
+        )
+    ).scalar_one()
+
+    return StripePlanStatusResponse(
+        plan_id=plan_id,
+        stripe_product_id=plan.stripe_product_id,
+        stripe_price_id=plan.stripe_price_id,
+        price_version=plan.price_version,
+        amount_cents=plan.amount_cents,
+        currency=plan.currency,
+        count_active_subs=count_active,
+    )
 
 
 # ---------------------------------------------------------------------------

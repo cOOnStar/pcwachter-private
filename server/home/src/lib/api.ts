@@ -14,6 +14,7 @@ export interface PlanItem {
   feature_flags: Record<string, boolean> | null;
   grace_period_days: number;
   stripe_price_id: string | null;
+  price_version?: number;
 }
 
 export async function getPlans(): Promise<PlanItem[]> {

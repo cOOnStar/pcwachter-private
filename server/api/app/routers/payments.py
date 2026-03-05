@@ -172,6 +172,10 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         invoice = event["data"]["object"]
         _handle_invoice_payment_failed(db, invoice)
 
+    elif event_type in ("customer.subscription.updated",):
+        subscription = event["data"]["object"]
+        _handle_subscription_updated(db, subscription)
+
     elif event_type in ("customer.subscription.deleted",):
         subscription = event["data"]["object"]
         _handle_subscription_deleted(db, subscription)
@@ -300,6 +304,47 @@ def _handle_invoice_payment_failed(db: Session, invoice: dict) -> None:
 
     sub.status = "grace"
     sub.grace_until = utcnow() + timedelta(days=grace_days)
+    db.commit()
+
+
+def _handle_subscription_updated(db: Session, stripe_sub: dict) -> None:
+    """
+    Keep status and current_period_end in sync when Stripe emits
+    customer.subscription.updated (e.g. after a price migration).
+    Does NOT deactivate licenses for active/trialing subscriptions.
+    """
+    stripe_subscription_id: str = stripe_sub.get("id", "") or ""
+    if not stripe_subscription_id:
+        return
+
+    sub = db.execute(
+        select(Subscription).where(Subscription.stripe_subscription_id == stripe_subscription_id)
+    ).scalar_one_or_none()
+    if not sub:
+        return
+
+    stripe_status: str = stripe_sub.get("status", "") or ""
+    period_end_ts = stripe_sub.get("current_period_end")
+
+    # Map Stripe status → internal status (never deactivate active/trialing)
+    status_map = {
+        "active": "active",
+        "trialing": "active",
+        "past_due": "grace",
+        "canceled": "cancelled",
+        "unpaid": "grace",
+        "paused": "grace",
+    }
+    new_status = status_map.get(stripe_status)
+    if new_status and new_status not in ("cancelled",):
+        sub.status = new_status
+    elif new_status == "cancelled":
+        # Only update status – deletion event handles license deactivation
+        sub.status = "cancelled"
+
+    if period_end_ts:
+        sub.current_period_end = datetime.fromtimestamp(period_end_ts, tz=timezone.utc)
+
     db.commit()
 
 
