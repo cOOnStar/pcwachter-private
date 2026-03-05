@@ -39,7 +39,9 @@
       "Bash(docker rm pcw-api)",
       "Bash(docker compose -f \"c:/Users/Calvin/Documents/PCWächter/server/infra/compose/docker-compose.yml\" --env-file \"c:/Users/Calvin/Documents/PCWächter/.env\" up -d api)",
       "Bash(docker ps --filter \"name=pcw-api\" --format \"{{.Status}}\")",
-      "Bash(curl -s \"http://localhost:18080/api/v1/console/ui/knowledge-base?limit=3&offset=0\" -H \"Authorization: Bearer invalid\")"
+      "Bash(curl -s \"http://localhost:18080/api/v1/console/ui/knowledge-base?limit=3&offset=0\" -H \"Authorization: Bearer invalid\")",
+      "Bash(curl -s http://localhost:18080/openapi.json)",
+      "Bash(python3 -c \"import sys,json; paths=json.load\\(sys.stdin\\)[''paths'']; print\\(''\\\\n''.join\\([p for p in paths if ''activity-feed'' in p or ''knowledge-base'' in p]\\)\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",

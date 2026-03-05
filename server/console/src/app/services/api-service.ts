@@ -503,6 +503,10 @@ export async function diagZammadRoles(): Promise<{ roles: string[]; user_id?: st
   return api("/support/admin/diag/zammad-roles");
 }
 
+export async function diagZammadUser(email: string): Promise<{ zammad_user_id: number | null; email: string }> {
+  return api(`/support/admin/diag/zammad-user?email=${encodeURIComponent(email)}`);
+}
+
 // ── Device Update Channel ─────────────────────────────────────────────────────
 
 export async function setDeviceUpdateChannel(
