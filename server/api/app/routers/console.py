@@ -27,6 +27,9 @@ from ..schemas import (
     PublishPriceRequest,
     PublishPriceResponse,
     StripePlanStatusResponse,
+    SubscriptionItem,
+    SubscriptionListResponse,
+    SubscriptionPatchRequest,
 )
 from ..security import require_api_key
 from ..security_jwt import require_console_owner, require_console_user, require_home_user
@@ -1377,6 +1380,86 @@ def ui_revoke_license(
     lic.state = "revoked"
     db.commit()
     return {"ok": True, "license_key": lic.license_key, "state": "revoked"}
+
+
+# ---------------------------------------------------------------------------
+# Subscription admin
+# ---------------------------------------------------------------------------
+
+@router.get("/ui/subscriptions", response_model=SubscriptionListResponse)
+def ui_list_subscriptions(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _owner: dict = Depends(require_console_owner),
+):
+    from ..models import Subscription as _Sub
+    total = db.execute(select(func.count(_Sub.id))).scalar_one()
+    rows = db.execute(
+        select(_Sub).order_by(_Sub.created_at.desc()).limit(limit).offset(offset)
+    ).scalars().all()
+    items = [
+        SubscriptionItem(
+            id=str(s.id),
+            keycloak_user_id=s.keycloak_user_id,
+            plan_id=s.plan_id,
+            status=s.status,
+            stripe_customer_id=s.stripe_customer_id,
+            stripe_subscription_id=s.stripe_subscription_id,
+            allow_self_cancel=s.allow_self_cancel,
+            current_period_end=s.current_period_end.isoformat() if s.current_period_end else None,
+        )
+        for s in rows
+    ]
+    return SubscriptionListResponse(items=items, total=total)
+
+
+@router.get("/ui/subscriptions/{sub_id}", response_model=SubscriptionItem)
+def ui_get_subscription(
+    sub_id: str,
+    db: Session = Depends(get_db),
+    _owner: dict = Depends(require_console_owner),
+):
+    from ..models import Subscription as _Sub
+    sub = db.get(_Sub, sub_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="subscription not found")
+    return SubscriptionItem(
+        id=str(sub.id),
+        keycloak_user_id=sub.keycloak_user_id,
+        plan_id=sub.plan_id,
+        status=sub.status,
+        stripe_customer_id=sub.stripe_customer_id,
+        stripe_subscription_id=sub.stripe_subscription_id,
+        allow_self_cancel=sub.allow_self_cancel,
+        current_period_end=sub.current_period_end.isoformat() if sub.current_period_end else None,
+    )
+
+
+@router.patch("/ui/subscriptions/{sub_id}", response_model=SubscriptionItem)
+def ui_patch_subscription(
+    sub_id: str,
+    payload: SubscriptionPatchRequest,
+    db: Session = Depends(get_db),
+    _owner: dict = Depends(require_console_owner),
+):
+    from ..models import Subscription as _Sub
+    sub = db.get(_Sub, sub_id)
+    if not sub:
+        raise HTTPException(status_code=404, detail="subscription not found")
+    sub.allow_self_cancel = payload.allow_self_cancel
+    db.commit()
+    db.refresh(sub)
+    return SubscriptionItem(
+        id=str(sub.id),
+        keycloak_user_id=sub.keycloak_user_id,
+        plan_id=sub.plan_id,
+        status=sub.status,
+        stripe_customer_id=sub.stripe_customer_id,
+        stripe_subscription_id=sub.stripe_subscription_id,
+        allow_self_cancel=sub.allow_self_cancel,
+        current_period_end=sub.current_period_end.isoformat() if sub.current_period_end else None,
+    )
 
 
 # ---------------------------------------------------------------------------

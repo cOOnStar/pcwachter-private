@@ -80,7 +80,15 @@
       "Bash(docker exec pcw-api alembic -c /app/alembic.ini upgrade head)",
       "Bash(docker exec pcw-api sh -c 'find / -name \"\"alembic.ini\"\" 2>/dev/null | head -5')",
       "Bash(docker exec pcw-api sh -c 'cd /app && alembic upgrade head')",
-      "Bash(docker exec pcw-postgres psql -U pcwaechter -d pcwaechter -c \"\\\\d plans\")"
+      "Bash(docker exec pcw-postgres psql -U pcwaechter -d pcwaechter -c \"\\\\d plans\")",
+      "Bash(docker exec pcw-api sh -c 'cd /app && alembic current')",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/alembic/versions/20260305_0014_subscription_allow_self_cancel.py\" pcw-api:/app/alembic/versions/)",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/app/models.py\" pcw-api:/app/app/models.py)",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/app/settings.py\" pcw-api:/app/app/settings.py)",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/app/schemas.py\" pcw-api:/app/app/schemas.py)",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/app/routers/console.py\" pcw-api:/app/app/routers/console.py)",
+      "Bash(docker cp \"c:/Users/Calvin/Documents/PCWächter/server/api/app/routers/payments.py\" pcw-api:/app/app/routers/payments.py)",
+      "Bash(docker restart pcw-api)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",

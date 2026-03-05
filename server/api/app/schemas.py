@@ -334,3 +334,25 @@ class StripePortalRequest(BaseModel):
 class StripePortalResponse(BaseModel):
     ok: bool = True
     portal_url: str
+
+
+class SubscriptionItem(BaseModel):
+    id: str
+    keycloak_user_id: str
+    plan_id: str | None
+    status: str
+    stripe_customer_id: str | None
+    stripe_subscription_id: str | None
+    allow_self_cancel: bool
+    current_period_end: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionPatchRequest(BaseModel):
+    allow_self_cancel: bool
+
+
+class SubscriptionListResponse(BaseModel):
+    items: list[SubscriptionItem]
+    total: int

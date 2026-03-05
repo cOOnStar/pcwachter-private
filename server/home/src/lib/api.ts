@@ -14,7 +14,10 @@ export interface PlanItem {
   feature_flags: Record<string, boolean> | null;
   grace_period_days: number;
   stripe_price_id: string | null;
-  price_version?: number;
+  amount_cents: number | null;
+  currency: string;
+  price_version: number;
+  stripe_product_id: string | null;
 }
 
 export async function getPlans(): Promise<PlanItem[]> {

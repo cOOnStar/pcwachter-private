@@ -325,6 +325,33 @@ export async function publishPlanPrice(
   });
 }
 
+// ── Subscriptions ────────────────────────────────────────────────────────────
+
+export interface Subscription {
+  id: string;
+  keycloak_user_id: string;
+  plan_id: string | null;
+  status: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  allow_self_cancel: boolean;
+  current_period_end: string | null;
+}
+
+export async function getSubscriptions(params: { limit?: number; offset?: number } = {}): Promise<PagedResponse<Subscription>> {
+  const q = new URLSearchParams();
+  if (params.limit != null) q.set("limit", String(params.limit));
+  if (params.offset != null) q.set("offset", String(params.offset));
+  return api(`/console/ui/subscriptions?${q}`);
+}
+
+export async function patchSubscription(subId: string, payload: { allow_self_cancel: boolean }): Promise<Subscription> {
+  return api(`/console/ui/subscriptions/${encodeURIComponent(subId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 // ── Feature Overrides ────────────────────────────────────────────────────────
 
 export async function getFeatureOverrides(): Promise<PagedResponse<FeatureOverride>> {

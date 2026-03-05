@@ -118,10 +118,16 @@ async def customer_portal(
     if not sub or not sub.stripe_customer_id:
         raise HTTPException(status_code=404, detail="no stripe customer found")
 
-    session = stripe.billing_portal.Session.create(
-        customer=sub.stripe_customer_id,
-        return_url=payload.return_url,
-    )
+    portal_kwargs: dict = {
+        "customer": sub.stripe_customer_id,
+        "return_url": payload.return_url,
+    }
+    if sub.allow_self_cancel and settings.STRIPE_PORTAL_CONFIG_WITH_CANCEL:
+        portal_kwargs["configuration"] = settings.STRIPE_PORTAL_CONFIG_WITH_CANCEL
+    elif not sub.allow_self_cancel and settings.STRIPE_PORTAL_CONFIG_NO_CANCEL:
+        portal_kwargs["configuration"] = settings.STRIPE_PORTAL_CONFIG_NO_CANCEL
+
+    session = stripe.billing_portal.Session.create(**portal_kwargs)
     return StripePortalResponse(ok=True, portal_url=session.url)
 
 

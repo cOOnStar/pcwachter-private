@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_ENABLED: bool = True
     STRIPE_CURRENCY_DEFAULT: str = "eur"
+    # Customer Portal configurations (Stripe dashboard IDs, format: bpc_xxx)
+    # Portal config without cancel option (default for all subscriptions)
+    STRIPE_PORTAL_CONFIG_NO_CANCEL: str = ""
+    # Portal config with cancel option (used when sub.allow_self_cancel=True)
+    STRIPE_PORTAL_CONFIG_WITH_CANCEL: str = ""
 
 
 settings = Settings()

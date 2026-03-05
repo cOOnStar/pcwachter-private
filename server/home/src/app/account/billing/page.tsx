@@ -13,6 +13,9 @@ interface PlanItem {
   is_active: boolean;
   sort_order: number;
   stripe_price_id: string | null;
+  amount_cents: number | null;
+  currency: string;
+  price_version: number;
 }
 
 function formatDuration(days: number | null): string {
@@ -350,9 +353,14 @@ export default function BillingPage() {
                 </div>
               )}
               {plans.map((plan) => {
-                const canBuy =
-                  stripeEnabled &&
-                  Boolean(plan.stripe_price_id ?? (plan.price_eur && plan.price_eur > 0));
+                const canBuy = stripeEnabled && Boolean(plan.stripe_price_id);
+                const isFree = plan.amount_cents === 0 || plan.price_eur === 0;
+                const displayPrice = plan.amount_cents != null
+                  ? (plan.amount_cents / 100).toFixed(2)
+                  : plan.price_eur != null
+                  ? plan.price_eur.toFixed(2)
+                  : null;
+                const currencySymbol = (plan.currency ?? "eur").toUpperCase() === "EUR" ? "€" : (plan.currency ?? "eur").toUpperCase();
                 return (
                   <div
                     key={plan.id}
@@ -378,14 +386,12 @@ export default function BillingPage() {
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
-                      {plan.price_eur !== null && (
+                      {displayPrice !== null && (
                         <div style={{ textAlign: "right" }}>
                           <span style={{ fontWeight: 800, fontSize: "1.2rem" }}>
-                            {plan.price_eur === 0
-                              ? "Kostenlos"
-                              : `${plan.price_eur.toFixed(2)} €`}
+                            {isFree ? "Kostenlos" : `${displayPrice} ${currencySymbol}`}
                           </span>
-                          {plan.price_eur > 0 && plan.duration_days && (
+                          {!isFree && plan.duration_days && (
                             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                               /{formatDuration(plan.duration_days).toLowerCase()}
                             </div>
@@ -412,7 +418,7 @@ export default function BillingPage() {
                             color: "var(--text-muted)",
                           }}
                         >
-                          {plan.price_eur === 0 ? "Kostenlos" : "Demnächst"}
+                          {isFree ? "Kostenlos" : "Noch nicht verfügbar"}
                         </span>
                       )}
                     </div>

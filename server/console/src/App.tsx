@@ -18,6 +18,7 @@ import KnowledgeBasePage from "./app/pages/KnowledgeBasePage";
 import SupportPage from "./app/pages/SupportPage";
 import SupportTicketDetailPage from "./app/pages/SupportTicketDetailPage";
 import PlanDetailPage from "./app/pages/PlanDetailPage";
+import SubscriptionsPage from "./app/pages/SubscriptionsPage";
 
 export default function App() {
   const { ready, authenticated, isAdmin } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/accounts" element={<AccountsPage />} />
             {isAdmin() && <Route path="/plans" element={<PlansPage />} />}
             {isAdmin() && <Route path="/plans/:planId" element={<PlanDetailPage />} />}
+            {isAdmin() && <Route path="/subscriptions" element={<SubscriptionsPage />} />}
             <Route path="/features" element={<FeatureRolloutsPage />} />
             <Route path="/audit" element={<AuditLogPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
