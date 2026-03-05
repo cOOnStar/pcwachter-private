@@ -41,7 +41,22 @@
       "Bash(docker ps --filter \"name=pcw-api\" --format \"{{.Status}}\")",
       "Bash(curl -s \"http://localhost:18080/api/v1/console/ui/knowledge-base?limit=3&offset=0\" -H \"Authorization: Bearer invalid\")",
       "Bash(curl -s http://localhost:18080/openapi.json)",
-      "Bash(python3 -c \"import sys,json; paths=json.load\\(sys.stdin\\)[''paths'']; print\\(''\\\\n''.join\\([p for p in paths if ''activity-feed'' in p or ''knowledge-base'' in p]\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; paths=json.load\\(sys.stdin\\)[''paths'']; print\\(''\\\\n''.join\\([p for p in paths if ''activity-feed'' in p or ''knowledge-base'' in p]\\)\\)\")",
+      "Bash(ls .env*)",
+      "Bash(docker ps --format \"table {{.Names}}\\\\t{{.Ports}}\")",
+      "Bash(docker exec pcw-api python -c \"import os; vars=[''ZAMMAD_BASE_URL'',''ZAMMAD_API_TOKEN'',''ZAMMAD_DEFAULT_GROUP_ID'']; [print\\(f''{v}={repr\\(os.getenv\\(v\\)\\)}''\\) for v in vars]\")",
+      "Bash(docker exec pcw-zammad bash -c 'ls /opt/zammad/config/database/')",
+      "Bash(docker exec pcw-zammad bash -c 'cat /opt/zammad/config/database/production.yml 2>/dev/null | head -20 || echo \"\"no production.yml\"\"')",
+      "Bash(docker exec pcw-zammad bash -c 'ls -la /opt/zammad/config/database.yml 2>&1; ls -la /opt/zammad/config/ 2>&1 | grep -E \"\"database|sym\"\"')",
+      "Bash(docker exec pcw-zammad-railsserver bash -c 'ls -la /opt/zammad/config/database.yml 2>&1; cat /opt/zammad/config/database.yml 2>/dev/null | head -15')",
+      "Bash(docker compose -f server/infra/compose/docker-compose.yml --env-file .env --profile zammad up -d --force-recreate zammad-nginx)",
+      "Bash(docker exec pcw-api python3 -c \":*)",
+      "Bash(docker exec pcw-zammad-railsserver bash -c 'echo $DATABASE_URL')",
+      "Bash(docker exec pcw-zammad-railsserver env)",
+      "Bash(docker exec pcw-zammad-railsserver bash -c 'ls /opt/zammad/config/ | grep -v \"\"^d\"\" ; find /opt/zammad/config -name \"\"*.yml\"\" | head -10')",
+      "Bash(docker exec pcw-zammad env)",
+      "Bash(docker exec pcw-zammad-railsserver bash -c 'DATABASE_URL=\"\"postgresql://zammad:zammad_dev@zammad-db:5432/zammad\"\" bundle exec rails r \"\"admin = User.find\\(2\\); t = Token.create!\\(action: \\\\\"\"api\\\\\"\", user_id: admin.id, name: \\\\\"\"pcw-api\\\\\"\", persistent: true\\); puts t.token\"\" 2>&1 | tail -5')",
+      "Bash(docker compose -f server/infra/compose/docker-compose.yml --env-file .env up -d --force-recreate api)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",

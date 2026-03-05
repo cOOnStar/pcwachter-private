@@ -430,6 +430,12 @@ services:
     environment:
       NGINX_SERVER_NAME: ${ZAMMAD_HOSTNAME:-support.pcwaechter.local}
       NGINX_PORT: "3001"
+      POSTGRESQL_HOST: zammad-db
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DB: ${ZAMMAD_POSTGRES_DB:-zammad}
+      POSTGRESQL_USER: ${ZAMMAD_POSTGRES_USER:-zammad}
+      POSTGRESQL_PASS: ${ZAMMAD_POSTGRES_PASSWORD:-zammad_local}
+      REDIS_URL: redis://zammad-redis:6379
     volumes:
       - zammad-storage:/opt/zammad/storage
       - zammad-data:/opt/zammad/data
