@@ -60,7 +60,8 @@
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",
-      "c:\\Users\\Calvin\\Documents\\PCWächter\\server\\api\\alembic"
+      "c:\\Users\\Calvin\\Documents\\PCWächter\\server\\api\\alembic",
+      "C:\\Users\\Calvin\\Documents\\PCWächter\\server\\home\\src\\app\\api\\home\\devices"
     ]
   }
 }
