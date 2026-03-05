@@ -1303,7 +1303,7 @@ import string
 
 def _generate_license_key() -> str:
     alphabet = string.ascii_uppercase + string.digits
-    segments = ["".join(secrets.choice(alphabet) for _ in range(5)) for _ in range(5)]
+    segments = ["".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(3)]
     return "-".join(segments)
 
 

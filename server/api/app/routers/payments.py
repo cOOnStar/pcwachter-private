@@ -46,7 +46,7 @@ def utcnow() -> datetime:
 def _generate_license_key() -> str:
     alphabet = string.ascii_uppercase + string.digits
     rng = secrets.SystemRandom()
-    return "-".join("".join(rng.choices(alphabet, k=5)) for _ in range(5))
+    return "-".join("".join(rng.choices(alphabet, k=4)) for _ in range(3))
 
 
 def _get_or_create_stripe_customer(email: str, name: str | None = None) -> str:

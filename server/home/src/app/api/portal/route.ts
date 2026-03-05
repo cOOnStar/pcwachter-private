@@ -1,33 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { stripe } from "@/lib/stripe";
+
+const API_URL =
+  process.env.API_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://api.xn--pcwchter-2za.de";
 
 export async function POST(req: NextRequest) {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return NextResponse.json({ error: "Stripe not configured yet" }, { status: 503 });
-  }
-
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.accessToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const origin = req.headers.get("origin") ?? "https://home.xn--pcwchter-2za.de";
 
-  // Find existing Stripe customer by email
-  const customers = await stripe.customers.list({
-    email: session.user.email ?? "",
-    limit: 1,
+  const apiRes = await fetch(`${API_URL}/payments/portal`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ return_url: `${origin}/account/billing` }),
   });
 
-  if (customers.data.length === 0) {
-    return NextResponse.json({ error: "no_billing_account" }, { status: 404 });
+  const data = await apiRes.json().catch(() => ({}));
+  if (!apiRes.ok) {
+    const detail = (data as { detail?: string }).detail ?? "";
+    if (apiRes.status === 404 && detail === "no stripe customer found") {
+      return NextResponse.json({ error: "no_billing_account" }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: detail || "Fehler beim Öffnen des Kundenportals." },
+      { status: apiRes.status }
+    );
   }
 
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: customers.data[0].id,
-    return_url: `${origin}/account/billing`,
-  });
-
-  return NextResponse.json({ portal_url: portalSession.url });
+  return NextResponse.json(data, { status: 200 });
 }
