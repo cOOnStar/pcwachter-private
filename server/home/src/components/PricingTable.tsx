@@ -43,7 +43,7 @@ export default function PricingTable({ plans }: Props) {
     if (!stripeEnabled) return;
 
     if (!session) {
-      signIn("keycloak");
+      signIn("keycloak", { callbackUrl: "/account/billing" });
       return;
     }
 

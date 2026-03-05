@@ -48,7 +48,7 @@ export default function NavBar() {
             <button
               className="btn btn-primary"
               style={{ fontSize: "0.85rem" }}
-              onClick={() => signIn("keycloak")}
+              onClick={() => signIn("keycloak", { callbackUrl: "/account" })}
             >
               Anmelden
             </button>
