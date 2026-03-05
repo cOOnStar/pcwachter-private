@@ -28,11 +28,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Plan not found" }, { status: 404 });
   }
 
+  if (!plan.is_active) {
+    return NextResponse.json({ error: "Plan is not active" }, { status: 400 });
+  }
+
   const isSubscription = plan.duration_days === 30 || plan.duration_days === 365;
   const hasNumericPrice = typeof plan.price_eur === "number" && plan.price_eur > 0;
 
   if (!plan.stripe_price_id && !hasNumericPrice) {
-    return NextResponse.json({ error: "Plan not found or not purchasable" }, { status: 404 });
+    return NextResponse.json({ error: "Plan not purchasable: no Stripe price configured" }, { status: 400 });
   }
 
   const origin = req.headers.get("origin") ?? "https://home.xn--pcwchter-2za.de";
@@ -62,8 +66,8 @@ export async function POST(req: NextRequest) {
       plan_id,
       plan_version: String(plan.price_version ?? 1),
     },
-    success_url: `${origin}/account?success=1`,
-    cancel_url: `${origin}/account/billing?cancelled=1`,
+    success_url: `${origin}/account/billing?checkout=success`,
+    cancel_url: `${origin}/account/billing?checkout=cancel`,
   });
 
   return NextResponse.json({ checkout_url: checkoutSession.url });

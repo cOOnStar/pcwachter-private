@@ -1113,6 +1113,10 @@ def _plan_to_item(p: Plan) -> PlanItemExtended:
         feature_flags=p.feature_flags,
         grace_period_days=p.grace_period_days,
         stripe_price_id=p.stripe_price_id,
+        amount_cents=p.amount_cents,
+        currency=p.currency or "eur",
+        price_version=p.price_version or 1,
+        stripe_product_id=p.stripe_product_id,
     )
 
 
@@ -1165,6 +1169,10 @@ def ui_upsert_plan(
     plan.grace_period_days = payload.grace_period_days
     if payload.stripe_price_id is not None:
         plan.stripe_price_id = payload.stripe_price_id
+    if payload.amount_cents is not None:
+        plan.amount_cents = payload.amount_cents
+    if payload.currency:
+        plan.currency = payload.currency
     db.commit()
     db.refresh(plan)
 

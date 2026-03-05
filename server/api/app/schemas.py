@@ -262,6 +262,10 @@ class PlanItemExtended(PlanItem):
     feature_flags: dict | None = None
     grace_period_days: int = 7
     stripe_price_id: str | None = None
+    amount_cents: int | None = None
+    currency: str = "eur"
+    price_version: int = 1
+    stripe_product_id: str | None = None
 
 
 class PlanListResponseExtended(BaseModel):
@@ -273,6 +277,8 @@ class PlanUpsertRequestExtended(PlanUpsertRequest):
     feature_flags: dict | None = None
     grace_period_days: int = 7
     stripe_price_id: str | None = None
+    amount_cents: int | None = None
+    currency: str = "eur"
 
 
 # ---------------------------------------------------------------------------

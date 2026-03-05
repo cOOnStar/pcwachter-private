@@ -22,10 +22,77 @@ function formatDuration(days: number | null): string {
   return `${days} Tage`;
 }
 
-function CheckoutBanner() {
+// Polls /api/license-status every 5s for up to 60s after successful checkout
+function SuccessPoller() {
   const params = useSearchParams();
-  const status = params.get("checkout");
-  if (status === "success") {
+  const [licenseActive, setLicenseActive] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (params.get("checkout") !== "success") return;
+
+    let elapsed = 0;
+    const id = setInterval(async () => {
+      elapsed += 5;
+      if (elapsed > 60) {
+        clearInterval(id);
+        setTimedOut(true);
+        return;
+      }
+      try {
+        const res = await fetch("/api/license-status");
+        if (res.ok) {
+          const data = await res.json() as { state?: string };
+          if (data.state === "active") {
+            setLicenseActive(true);
+            clearInterval(id);
+          }
+        }
+      } catch {
+        // ignore network errors during polling
+      }
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [params]);
+
+  if (params.get("checkout") !== "success") return null;
+
+  if (licenseActive) {
+    return (
+      <div
+        style={{
+          background: "#14532d",
+          border: "1px solid #16a34a",
+          borderRadius: "0.75rem",
+          padding: "1rem 1.25rem",
+          color: "#4ade80",
+          marginBottom: "1.5rem",
+          fontSize: "0.9rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "1rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <span>✓ <strong>Lizenz aktiv!</strong> Ihr Zugang ist einsatzbereit.</span>
+        <a
+          href="/account"
+          style={{
+            color: "#4ade80",
+            fontWeight: 700,
+            textDecoration: "underline",
+            fontSize: "0.875rem",
+          }}
+        >
+          → Zum Dashboard
+        </a>
+      </div>
+    );
+  }
+
+  if (timedOut) {
     return (
       <div
         style={{
@@ -38,34 +105,57 @@ function CheckoutBanner() {
           fontSize: "0.9rem",
         }}
       >
-        ✓ <strong>Zahlung erfolgreich!</strong> Ihre Lizenz ist aktiv.
+        ✓ <strong>Zahlung erfolgreich!</strong> Ihre Lizenz kann noch einen Moment dauern.
       </div>
     );
   }
-  if (status === "cancel") {
-    return (
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "0.75rem",
-          padding: "1rem 1.25rem",
-          color: "var(--text-muted)",
-          marginBottom: "1.5rem",
-          fontSize: "0.875rem",
-        }}
-      >
-        Checkout abgebrochen. Sie können jederzeit einen Plan auswählen.
-      </div>
-    );
-  }
-  return null;
+
+  return (
+    <div
+      style={{
+        background: "#14532d",
+        border: "1px solid #16a34a",
+        borderRadius: "0.75rem",
+        padding: "1rem 1.25rem",
+        color: "#4ade80",
+        marginBottom: "1.5rem",
+        fontSize: "0.9rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+      }}
+    >
+      <Spinner />
+      <span>✓ <strong>Zahlung erfolgreich!</strong> Lizenz wird aktiviert…</span>
+    </div>
+  );
+}
+
+function CancelBanner() {
+  const params = useSearchParams();
+  if (params.get("checkout") !== "cancel") return null;
+  return (
+    <div
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "0.75rem",
+        padding: "1rem 1.25rem",
+        color: "var(--text-muted)",
+        marginBottom: "1.5rem",
+        fontSize: "0.875rem",
+      }}
+    >
+      Checkout abgebrochen. Sie können jederzeit einen Plan auswählen.
+    </div>
+  );
 }
 
 export default function BillingPage() {
   const stripeEnabled = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState("");
+  const [noBillingAccount, setNoBillingAccount] = useState(false);
   const [showPlans, setShowPlans] = useState(!stripeEnabled);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
@@ -92,6 +182,7 @@ export default function BillingPage() {
     if (!stripeEnabled) return;
     setPortalLoading(true);
     setPortalError("");
+    setNoBillingAccount(false);
     try {
       const res = await fetch("/api/portal", { method: "POST" });
       if (res.ok) {
@@ -100,6 +191,10 @@ export default function BillingPage() {
         return;
       }
       if (res.status === 404) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        if (body.error === "no_billing_account") {
+          setNoBillingAccount(true);
+        }
         setShowPlans(true);
         return;
       }
@@ -141,7 +236,8 @@ export default function BillingPage() {
       </h1>
 
       <Suspense fallback={null}>
-        <CheckoutBanner />
+        <SuccessPoller />
+        <CancelBanner />
       </Suspense>
 
       {/* Portal section */}
@@ -185,13 +281,29 @@ export default function BillingPage() {
       {/* Plan selection */}
       {showPlans && (
         <div style={{ marginBottom: "1.5rem" }}>
+          {noBillingAccount && (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "0.75rem",
+                padding: "1rem 1.25rem",
+                color: "var(--text-secondary)",
+                marginBottom: "1.25rem",
+                fontSize: "0.9rem",
+              }}
+            >
+              Für diesen Account existiert noch kein Abonnement. Bitte wähle einen Plan.
+            </div>
+          )}
+
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
             <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>Plan auswählen</h2>
             {stripeEnabled && (
               <button
                 className="btn btn-outline"
                 style={{ fontSize: "0.8rem", padding: "0.35rem 0.75rem" }}
-                onClick={() => setShowPlans(false)}
+                onClick={() => { setShowPlans(false); setNoBillingAccount(false); }}
               >
                 ← Zurück
               </button>

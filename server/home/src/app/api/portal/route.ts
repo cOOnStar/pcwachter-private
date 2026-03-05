@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (customers.data.length === 0) {
-    return NextResponse.json({ error: "No billing account found" }, { status: 404 });
+    return NextResponse.json({ error: "no_billing_account" }, { status: 404 });
   }
 
   const portalSession = await stripe.billingPortal.sessions.create({

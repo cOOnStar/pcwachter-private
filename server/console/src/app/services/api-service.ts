@@ -101,6 +101,31 @@ export interface Plan {
   feature_flags: Record<string, boolean> | null;
   grace_period_days: number;
   stripe_price_id: string | null;
+  amount_cents: number | null;
+  currency: string;
+  price_version: number;
+  stripe_product_id: string | null;
+}
+
+export interface PlanStripeStatus {
+  plan_id: string;
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
+  price_version: number;
+  amount_cents: number | null;
+  currency: string;
+  count_active_subs: number;
+}
+
+export interface PublishPriceResult {
+  plan_id: string;
+  old_price_id: string | null;
+  new_price_id: string;
+  migrated: number;
+  failed: number;
+  failed_subscription_ids: string[];
+  mode: string;
+  took_ms: number;
 }
 
 export interface FeatureOverride {
@@ -272,10 +297,31 @@ export async function getPlans(): Promise<PagedResponse<Plan>> {
   return api("/console/ui/plans");
 }
 
+export async function getPlan(planId: string): Promise<Plan> {
+  const data = await getPlans();
+  const plan = data.items.find((p) => p.id === planId);
+  if (!plan) throw Object.assign(new Error("Plan nicht gefunden"), { status: 404 });
+  return plan;
+}
+
 export async function upsertPlan(planId: string, data: Omit<Plan, "id">): Promise<Plan> {
   return api(`/console/ui/plans/${planId}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+}
+
+export async function getPlanStripeStatus(planId: string): Promise<PlanStripeStatus> {
+  return api(`/console/ui/plans/${encodeURIComponent(planId)}/stripe-status`);
+}
+
+export async function publishPlanPrice(
+  planId: string,
+  payload: { mode: "A"; dry_run: boolean }
+): Promise<PublishPriceResult> {
+  return api(`/console/ui/plans/${encodeURIComponent(planId)}/publish-price`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 
