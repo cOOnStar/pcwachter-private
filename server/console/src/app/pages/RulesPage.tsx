@@ -61,10 +61,22 @@ export default function RulesPage() {
   const [form, setForm] = useState({ ...EMPTY_RULE });
   const [saving, setSaving] = useState(false);
 
-  const { data: rulesData, isLoading: rulesLoading, error: rulesError } = useQuery({
-    queryKey: ["rules", categoryFilter],
-    queryFn: () => getRules({ category: categoryFilter !== "all" ? categoryFilter : undefined }),
+  const { data: rulesDataRaw, isLoading: rulesLoading, error: rulesError } = useQuery({
+    queryKey: ["rules"],
+    queryFn: () => getRules(),
   });
+
+  const rulesData = rulesDataRaw
+    ? {
+        ...rulesDataRaw,
+        items: categoryFilter !== "all"
+          ? rulesDataRaw.items.filter((r) => r.category === categoryFilter)
+          : rulesDataRaw.items,
+        total: categoryFilter !== "all"
+          ? rulesDataRaw.items.filter((r) => r.category === categoryFilter).length
+          : rulesDataRaw.total,
+      }
+    : undefined;
 
   const { data: findingsData, isLoading: findingsLoading } = useQuery({
     queryKey: ["rule-findings", findingState],
@@ -95,8 +107,7 @@ export default function RulesPage() {
     try {
       const conditions = JSON.parse(form.conditions_text || "[]");
       const recommendations = JSON.parse(form.recommendations_text || "{}");
-      await upsertRule({
-        id: form.id!,
+      await upsertRule(form.id!, {
         name: form.name!,
         category: form.category!,
         severity: form.severity ?? "warning",
@@ -140,7 +151,7 @@ export default function RulesPage() {
     }
   }
 
-  async function handleFindingState(f: FindingItem, state: string) {
+  async function handleFindingState(f: FindingItem, state: "open" | "resolved" | "ignored") {
     try {
       await patchRuleFinding(f.id, { state });
       toast({ title: `Finding ${state}`, variant: "success" });
@@ -176,9 +187,9 @@ export default function RulesPage() {
   ];
 
   const findingColumns: Column<FindingItem>[] = [
-    { key: "device", header: "Gerät", render: (f) => <span className="text-sm font-medium">{f.device_name ?? f.device_id.slice(0, 8)}</span> },
+    { key: "device", header: "Gerät", render: (f) => <span className="text-sm font-medium">{f.device_hostname ?? f.device_id.slice(0, 8)}</span> },
     { key: "rule", header: "Regel", render: (f) => <span className="text-sm">{f.rule_name ?? f.rule_id}</span> },
-    { key: "severity", header: "Schwere", render: (f) => f.severity ? severityBadge(f.severity) : null },
+    { key: "severity", header: "Schwere", render: (f) => f.rule_severity ? severityBadge(f.rule_severity) : null },
     { key: "state", header: "Status", render: (f) => stateBadge(f.state) },
     { key: "since", header: "Seit", render: (f) => <span className="text-xs text-[var(--text-muted)]">{new Date(f.created_at).toLocaleDateString("de-DE")}</span> },
     {
@@ -187,13 +198,13 @@ export default function RulesPage() {
       render: (f) => isAdmin() ? (
         <div className="flex items-center gap-1">
           {f.state !== "resolved" && (
-            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "resolved")}>Lösen</Button>
+            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "resolved" as const)}>Lösen</Button>
           )}
           {f.state !== "ignored" && (
-            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "ignored")}>Ignorieren</Button>
+            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "ignored" as const)}>Ignorieren</Button>
           )}
           {f.state !== "open" && (
-            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "open")}>Öffnen</Button>
+            <Button variant="ghost" size="sm" onClick={() => handleFindingState(f, "open" as const)}>Öffnen</Button>
           )}
         </div>
       ) : null,
@@ -323,7 +334,7 @@ export default function RulesPage() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-[var(--text-secondary)]">Schwere</label>
-                <Select value={form.severity ?? "warning"} onValueChange={(v) => setForm((f) => ({ ...f, severity: v }))}>
+                <Select value={form.severity ?? "warning"} onValueChange={(v) => setForm((f) => ({ ...f, severity: v as RuleItem["severity"] }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{SEVERITIES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>

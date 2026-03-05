@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUpdateManifests, upsertUpdateManifest, type UpdateManifest } from "../services/api-service";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -57,13 +57,16 @@ export default function UpdatesPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["updates", compFilter, chanFilter],
-    queryFn: () => getUpdateManifests({
-      component: compFilter !== "all" ? compFilter : undefined,
-      channel: chanFilter !== "all" ? chanFilter : undefined,
-    }),
+  const { data: allManifests, isLoading, error } = useQuery({
+    queryKey: ["updates"],
+    queryFn: () => getUpdateManifests(),
   });
+
+  const data = (allManifests ?? []).filter(
+    (m) =>
+      (compFilter === "all" || m.component === compFilter) &&
+      (chanFilter === "all" || m.channel === chanFilter)
+  );
 
   const err = error as (Error & { status?: number }) | null;
 
@@ -77,10 +80,10 @@ export default function UpdatesPage() {
       component: m.component as Component,
       channel: m.channel as Channel,
       latest_version: m.latest_version,
-      min_supported_version: m.min_supported_version,
+      min_supported_version: m.min_supported_version ?? "",
       mandatory: m.mandatory,
       download_url: m.download_url,
-      sha256: m.sha256,
+      sha256: m.sha256 ?? "",
       changelog: m.changelog ?? "",
       released_at: new Date(m.released_at).toISOString().slice(0, 16),
     });
@@ -90,8 +93,13 @@ export default function UpdatesPage() {
   async function handleSave() {
     setSaving(true);
     try {
-      await upsertUpdateManifest({
-        ...form,
+      await upsertUpdateManifest(form.component, form.channel, {
+        latest_version: form.latest_version,
+        min_supported_version: form.min_supported_version || null,
+        mandatory: form.mandatory,
+        download_url: form.download_url,
+        sha256: form.sha256 || null,
+        changelog: form.changelog || null,
         released_at: new Date(form.released_at).toISOString(),
       });
       toast({ title: "Update-Manifest gespeichert", variant: "success" });
@@ -104,7 +112,7 @@ export default function UpdatesPage() {
     }
   }
 
-  const items = data?.items ?? [];
+  const items = data;
 
   return (
     <div>
@@ -189,7 +197,7 @@ export default function UpdatesPage() {
                   <p className="text-[0.68rem] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">SHA-256</p>
                   <div className="flex items-center gap-1">
                     <span className="font-mono text-[0.7rem] text-[var(--text-secondary)] truncate max-w-[200px]">{m.sha256}</span>
-                    <CopyButton value={m.sha256} />
+                    {m.sha256 && <CopyButton value={m.sha256} />}
                   </div>
                 </div>
                 <div>

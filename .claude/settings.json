@@ -106,7 +106,14 @@
       "Bash(docker cp server/api/app/routers/updates.py pcw-api:/app/app/routers/updates.py)",
       "Bash(docker exec pcw-api curl -s http://localhost:8000/health)",
       "Bash(docker exec pcw-api python -c \"import app.routers.updates; print\\(''OK''\\)\")",
-      "Bash(docker exec pcw-api python -c \"import app.routers.rules, app.routers.commands, app.routers.me, app.routers.reports; print\\(''All routers OK''\\)\")"
+      "Bash(docker exec pcw-api python -c \"import app.routers.rules, app.routers.commands, app.routers.me, app.routers.reports; print\\(''All routers OK''\\)\")",
+      "Bash(docker ps --format \"{{.Names}}\\\\t{{.Status}}\")",
+      "Bash(docker compose build pcw-console pcw-home)",
+      "Bash(docker compose build console home)",
+      "Bash(docker compose build console)",
+      "Bash(docker compose up -d console home)",
+      "Bash(docker compose --env-file ../../../.env up -d console home)",
+      "Bash(docker cp server/api/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py pcw-api:/app/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",
