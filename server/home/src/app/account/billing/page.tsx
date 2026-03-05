@@ -46,7 +46,7 @@ function SuccessPoller() {
         const res = await fetch("/api/license-status");
         if (res.ok) {
           const data = await res.json() as { state?: string };
-          if (data.state === "active") {
+          if (data.state === "activated") {
             setLicenseActive(true);
             clearInterval(id);
           }

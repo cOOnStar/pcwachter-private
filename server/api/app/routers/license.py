@@ -193,11 +193,18 @@ def license_status(
         if not configured or not supplied or supplied not in configured:
             raise HTTPException(status_code=401, detail="missing or invalid credentials")
 
-    if not device_install_id and not license_key:
-        raise HTTPException(status_code=400, detail="device_install_id or license_key required")
-
     license_row: License | None = None
-    if license_key:
+    if not device_install_id and not license_key:
+        if not bearer_sub:
+            raise HTTPException(status_code=400, detail="device_install_id or license_key required")
+        # Bearer-only call (e.g. post-checkout polling): look up by Keycloak user ID
+        license_row = db.execute(
+            select(License)
+            .where(License.activated_by_user_id == bearer_sub)
+            .order_by(License.activated_at.desc().nullslast(), License.created_at.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+    elif license_key:
         normalized = normalize_license_key(license_key)
         license_row = db.execute(select(License).where(License.license_key == normalized)).scalar_one_or_none()
     else:

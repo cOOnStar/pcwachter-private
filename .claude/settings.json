@@ -116,7 +116,13 @@
       "Bash(docker cp server/api/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py pcw-api:/app/alembic/versions/20260305_0015_add_update_manifests_and_webhook_events_v2.py)",
       "Read(//dev/**)",
       "Bash(docker compose --env-file ../../../.env build console)",
-      "Bash(docker compose --env-file ../../../.env up -d console)"
+      "Bash(docker compose --env-file ../../../.env up -d console)",
+      "Bash(docker kill --signal=HUP pcw-api)",
+      "Bash(docker compose --env-file ../../../.env build pcw-home)",
+      "Bash(docker compose --env-file ../../../.env build home)",
+      "Bash(docker compose --env-file ../../../.env up -d home)",
+      "Bash(docker ps --filter name=pcw-home --format \"{{.Names}}: {{.Status}}\")",
+      "Bash(docker ps --filter name=pcw-api --format \"{{.Names}}: {{.Status}}\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Calvin\\AppData\\Local\\Temp",

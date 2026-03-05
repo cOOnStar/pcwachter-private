@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "title and body required" }, { status: 400 });
   }
 
-  const res = await fetch(`${API_URL}/support/tickets`, {
+  const res = await fetch(`${API_URL}/api/v1/support/tickets`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.accessToken}`,
