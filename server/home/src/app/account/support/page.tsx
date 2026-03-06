@@ -1,215 +1,222 @@
-"use client";
+import { auth } from "@/auth";
+import { getSupportTickets, type SupportTicketSummary } from "@/lib/api";
+import SupportTicketComposer from "./SupportTicketComposer";
 
-import { useState } from "react";
+function ticketTimestamp(ticket: SupportTicketSummary): number {
+  const value = ticket.last_contact_agent_at ?? ticket.updated_at ?? ticket.created_at;
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
-const CATEGORIES = [
-  { value: "general", label: "Allgemeine Anfrage" },
-  { value: "technical", label: "Technisches Problem" },
-  { value: "billing", label: "Abrechnung & Lizenz" },
-  { value: "feature", label: "Feature-Wunsch" },
-  { value: "other", label: "Sonstiges" },
-];
+function formatDate(iso: string | null): string {
+  if (!iso) return "Unbekannt";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Unbekannt";
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
 
-export default function SupportPage() {
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("general");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+function isSupportReplyPendingForUser(ticket: SupportTicketSummary): boolean {
+  if (!ticket.last_contact_agent_at) return false;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim() || !message.trim()) return;
+  const agentAt = new Date(ticket.last_contact_agent_at).getTime();
+  if (!Number.isFinite(agentAt)) return false;
 
-    setLoading(true);
-    setError("");
-    try {
-      const categoryLabel = CATEGORIES.find((c) => c.value === category)?.label ?? category;
-      const body = `Kategorie: ${categoryLabel}\n\n${message.trim()}`;
-      const res = await fetch("/api/home/support-ticket", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), body }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.error === "support_not_configured") {
-          setError("Support ist momentan nicht verfügbar. Bitte kontaktieren Sie uns direkt per E-Mail: support@pcwächter.de");
-        } else {
-          setError(data.error ?? "Fehler beim Erstellen des Tickets.");
-        }
-        return;
-      }
-      setSuccess(true);
-      setTitle("");
-      setCategory("general");
-      setMessage("");
-    } catch {
-      setError("Netzwerkfehler. Bitte versuchen Sie es erneut.");
-    } finally {
-      setLoading(false);
-    }
+  if (!ticket.last_contact_customer_at) return true;
+
+  const customerAt = new Date(ticket.last_contact_customer_at).getTime();
+  if (!Number.isFinite(customerAt)) return true;
+
+  return agentAt >= customerAt;
+}
+
+function stateLabel(ticket: SupportTicketSummary): string {
+  if (isSupportReplyPendingForUser(ticket)) return "Antwort offen";
+  if (ticket.state === "closed") return "Geschlossen";
+  if (ticket.state === "pending reminder") return "Wartet";
+  if (ticket.state === "new") return "Neu";
+  return "Aktiv";
+}
+
+function stateColors(ticket: SupportTicketSummary) {
+  if (isSupportReplyPendingForUser(ticket)) {
+    return {
+      border: "#2563eb",
+      background: "rgba(30, 58, 95, 0.45)",
+      label: "#93c5fd",
+    };
   }
+
+  if (ticket.state === "closed") {
+    return {
+      border: "var(--border)",
+      background: "var(--surface2)",
+      label: "var(--text-muted)",
+    };
+  }
+
+  return {
+    border: "#0f766e",
+    background: "rgba(15, 118, 110, 0.18)",
+    label: "#5eead4",
+  };
+}
+
+export default async function SupportPage() {
+  const session = await auth();
+  const tickets = session?.accessToken ? await getSupportTickets(session.accessToken) : [];
+  const sortedTickets = [...tickets].sort((left, right) => ticketTimestamp(right) - ticketTimestamp(left));
+  const replyPendingCount = sortedTickets.filter(isSupportReplyPendingForUser).length;
 
   return (
     <div>
-      <h1 style={{ fontWeight: 800, fontSize: "1.5rem", marginBottom: "0.5rem" }}>
-        Support
-      </h1>
+      <h1 style={{ fontWeight: 800, fontSize: "1.5rem", marginBottom: "0.5rem" }}>Support</h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "2rem", lineHeight: 1.6 }}>
-        Schildern Sie Ihr Anliegen. Wir melden uns so schnell wie möglich.
+        Hier sehen Sie Ihre letzten Tickets und koennen direkt eine neue Anfrage erstellen.
       </p>
 
-      {success && (
-        <div
-          style={{
-            background: "#14532d",
-            border: "1px solid #16a34a",
-            borderRadius: "0.75rem",
-            padding: "1rem 1.25rem",
-            color: "#4ade80",
-            marginBottom: "1.5rem",
-            fontSize: "0.9rem",
-          }}
-        >
-          ✓ <strong>Ticket erstellt.</strong> Wir haben Ihre Anfrage erhalten und melden uns bald.
-        </div>
-      )}
-
-      {error && (
-        <div
-          style={{
-            background: "#450a0a",
-            border: "1px solid #b91c1c",
-            borderRadius: "0.75rem",
-            padding: "1rem 1.25rem",
-            color: "#fca5a5",
-            marginBottom: "1.5rem",
-            fontSize: "0.875rem",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
       <div
+        id="ticket-history"
         style={{
           background: "var(--surface)",
           border: "1px solid var(--border)",
           borderRadius: "0.75rem",
-          padding: "1.75rem",
+          padding: "1.5rem",
+          marginBottom: "1.5rem",
         }}
       >
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {/* Subject */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "1rem",
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: "1.25rem",
+          }}
+        >
           <div>
-            <label
-              htmlFor="title"
-              style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}
-            >
-              Betreff *
-            </label>
-            <input
-              id="title"
-              type="text"
-              required
-              maxLength={200}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Kurze Beschreibung des Problems"
-              style={{
-                width: "100%",
-                background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.875rem",
-                color: "var(--text)",
-                fontSize: "0.9rem",
-              }}
-            />
+            <h2 style={{ fontWeight: 700, fontSize: "1rem", marginBottom: "0.35rem" }}>Ticketverlauf</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", lineHeight: 1.6 }}>
+              Antworten vom Support werden hier hervorgehoben.
+            </p>
           </div>
-
-          {/* Category */}
-          <div>
-            <label
-              htmlFor="category"
-              style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}
-            >
-              Kategorie
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div
               style={{
-                width: "100%",
                 background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.875rem",
-                color: "var(--text)",
-                fontSize: "0.9rem",
-                cursor: "pointer",
+                borderRadius: "9999px",
+                padding: "0.35rem 0.75rem",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "var(--text-muted)",
               }}
             >
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Message */}
-          <div>
-            <label
-              htmlFor="message"
-              style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.4rem" }}
-            >
-              Nachricht *
-            </label>
-            <textarea
-              id="message"
-              required
-              maxLength={5000}
-              rows={7}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Beschreiben Sie Ihr Anliegen so detailliert wie möglich…"
+              {sortedTickets.length} Tickets
+            </div>
+            <div
               style={{
-                width: "100%",
-                background: "var(--surface2)",
-                border: "1px solid var(--border)",
-                borderRadius: "0.5rem",
-                padding: "0.6rem 0.875rem",
-                color: "var(--text)",
-                fontSize: "0.9rem",
-                resize: "vertical",
-                fontFamily: "inherit",
-                lineHeight: 1.6,
+                background: replyPendingCount > 0 ? "rgba(30, 58, 95, 0.6)" : "var(--surface2)",
+                borderRadius: "9999px",
+                padding: "0.35rem 0.75rem",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: replyPendingCount > 0 ? "#93c5fd" : "var(--text-muted)",
               }}
-            />
-            <div style={{ textAlign: "right", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-              {message.length}/5000
+            >
+              {replyPendingCount} mit offener Antwort
             </div>
           </div>
+        </div>
 
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading || !title.trim() || !message.trim()}
-              style={{ opacity: loading ? 0.7 : 1 }}
-            >
-              {loading ? "Wird gesendet…" : "Ticket erstellen"}
-            </button>
-            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-              * Pflichtfelder
-            </span>
+        {sortedTickets.length === 0 ? (
+          <div
+            style={{
+              border: "1px dashed var(--border)",
+              borderRadius: "0.75rem",
+              padding: "1.25rem",
+              color: "var(--text-muted)",
+              fontSize: "0.9rem",
+              lineHeight: 1.6,
+            }}
+          >
+            Noch keine Support-Tickets vorhanden.
           </div>
-        </form>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+            {sortedTickets.slice(0, 10).map((ticket) => {
+              const colors = stateColors(ticket);
+              const lastUpdate = ticket.last_contact_agent_at ?? ticket.updated_at ?? ticket.created_at;
+
+              return (
+                <div
+                  key={ticket.id}
+                  style={{
+                    border: `1px solid ${colors.border}`,
+                    background: colors.background,
+                    borderRadius: "0.75rem",
+                    padding: "1rem 1.1rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "1rem",
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                      marginBottom: "0.6rem",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, marginBottom: "0.2rem" }}>
+                        {ticket.number ? `Ticket #${ticket.number}` : `Ticket ${ticket.id}`}
+                      </div>
+                      <div style={{ color: "var(--text)", fontSize: "0.9rem", lineHeight: 1.6 }}>
+                        {ticket.title || "Ohne Betreff"}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        color: colors.label,
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {stateLabel(ticket)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "1rem",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      color: "var(--text-muted)",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <span>Letzte Aktualisierung: {formatDate(lastUpdate)}</span>
+                    <span>{ticket.article_count ?? 0} Beitraege</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      <SupportTicketComposer />
 
       <div
         style={{

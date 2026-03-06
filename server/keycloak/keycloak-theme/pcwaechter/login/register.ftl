@@ -1,5 +1,5 @@
 <#import "template.ftl" as layout>
-<@layout.registrationLayout displayMessage=!messagesPerField.existsError('firstName','lastName','email','username','password','password-confirm'); section>
+<@layout.registrationLayout displayMessage=!messagesPerField.existsError('email','password','password-confirm'); section>
     <#if section = "header">
         PCWächter Registrierung
     <#elseif section = "form">
@@ -25,21 +25,15 @@
         <form id="kc-register-form" class="${properties.kcFormClass!}" action="${url.registrationAction}" method="post">
           
           <!-- Error Messages -->
-          <#if messagesPerField.existsError('firstName','lastName','email','username','password','password-confirm')>
+          <#if messagesPerField.existsError('email','password','password-confirm')>
             <div class="kc-error-message">
               <svg class="kc-error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
                 <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
               <span>
-                <#if messagesPerField.existsError('firstName')>
-                  ${kcSanitize(messagesPerField.get('firstName'))?no_esc}
-                <#elseif messagesPerField.existsError('lastName')>
-                  ${kcSanitize(messagesPerField.get('lastName'))?no_esc}
-                <#elseif messagesPerField.existsError('email')>
+                <#if messagesPerField.existsError('email')>
                   ${kcSanitize(messagesPerField.get('email'))?no_esc}
-                <#elseif messagesPerField.existsError('username')>
-                  ${kcSanitize(messagesPerField.get('username'))?no_esc}
                 <#elseif messagesPerField.existsError('password')>
                   ${kcSanitize(messagesPerField.get('password'))?no_esc}
                 <#elseif messagesPerField.existsError('password-confirm')>
@@ -49,36 +43,6 @@
             </div>
           </#if>
 
-          <!-- First Name -->
-          <div class="kc-form-group">
-            <label for="firstName" class="kc-label">Vorname</label>
-            <input 
-              tabindex="1"
-              type="text" 
-              id="firstName" 
-              class="kc-input <#if messagesPerField.existsError('firstName')>kc-input-error</#if>" 
-              name="firstName"
-              value="${(register.formData.firstName!'')}"
-              autocomplete="given-name"
-              placeholder="Max"
-            />
-          </div>
-
-          <!-- Last Name -->
-          <div class="kc-form-group">
-            <label for="lastName" class="kc-label">Nachname</label>
-            <input 
-              tabindex="2"
-              type="text" 
-              id="lastName" 
-              class="kc-input <#if messagesPerField.existsError('lastName')>kc-input-error</#if>" 
-              name="lastName"
-              value="${(register.formData.lastName!'')}"
-              autocomplete="family-name"
-              placeholder="Mustermann"
-            />
-          </div>
-
           <!-- Email -->
           <div class="kc-form-group">
             <label for="email" class="kc-label">
@@ -86,7 +50,7 @@
               <span class="kc-required">*</span>
             </label>
             <input 
-              tabindex="3"
+              tabindex="1"
               type="email" 
               id="email" 
               class="kc-input <#if messagesPerField.existsError('email')>kc-input-error</#if>" 
@@ -98,26 +62,6 @@
             />
           </div>
 
-          <!-- Username (if not email as username) -->
-          <#if !realm.registrationEmailAsUsername>
-            <div class="kc-form-group">
-              <label for="username" class="kc-label">
-                Benutzername
-                <span class="kc-required">*</span>
-              </label>
-              <input 
-                tabindex="4"
-                type="text" 
-                id="username" 
-                class="kc-input <#if messagesPerField.existsError('username')>kc-input-error</#if>" 
-                name="username"
-                value="${(register.formData.username!'')}"
-                autocomplete="username"
-                placeholder="benutzername"
-              />
-            </div>
-          </#if>
-
           <!-- Password -->
           <#if passwordRequired??>
             <div class="kc-form-group">
@@ -127,7 +71,7 @@
               </label>
               <div class="kc-password-wrapper">
                 <input 
-                  tabindex="5"
+                  tabindex="2"
                   type="password" 
                   id="password" 
                   class="kc-input <#if messagesPerField.existsError('password')>kc-input-error</#if>" 
@@ -155,7 +99,7 @@
               </label>
               <div class="kc-password-wrapper">
                 <input 
-                  tabindex="6"
+                  tabindex="3"
                   type="password" 
                   id="password-confirm" 
                   class="kc-input <#if messagesPerField.existsError('password-confirm')>kc-input-error</#if>" 
@@ -186,7 +130,7 @@
           <!-- Submit Button -->
           <div class="kc-form-buttons">
             <button 
-              tabindex="7"
+              tabindex="4"
               class="kc-btn kc-btn-primary" 
               type="submit"
             >
@@ -199,7 +143,7 @@
 
           <!-- Back to Login Link -->
           <div class="kc-form-footer kc-footer-center">
-            <a tabindex="8" href="${url.loginUrl}" class="kc-link">Zurück zur Anmeldung</a>
+            <a tabindex="5" href="${url.loginUrl}" class="kc-link">Zurück zur Anmeldung</a>
           </div>
         </form>
       </div>

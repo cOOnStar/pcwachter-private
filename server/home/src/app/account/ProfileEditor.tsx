@@ -4,6 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AccountProfile } from "@/lib/api";
 
+function normalizeEmail(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
 function displayName(profile: AccountProfile): string {
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim();
   return fullName || profile.name || profile.email || "Unbekannt";
@@ -42,6 +46,7 @@ export default function ProfileEditor({
   const [email, setEmail] = useState(initialProfile.email ?? "");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [info, setInfo] = useState("");
   const [warning, setWarning] = useState(warningMessage(initialProfile.warnings));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,8 +67,13 @@ export default function ProfileEditor({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedEmail = email.trim();
+    const submittedFirstName = firstName.trim();
+    const submittedLastName = lastName.trim();
+
     setError("");
     setSuccess("");
+    setInfo("");
     setWarning("");
     setIsSubmitting(true);
 
@@ -74,9 +84,9 @@ export default function ProfileEditor({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          first_name: firstName,
-          last_name: lastName,
+          email: submittedEmail,
+          first_name: submittedFirstName,
+          last_name: submittedLastName,
         }),
       });
 
@@ -99,11 +109,21 @@ export default function ProfileEditor({
       }
 
       const nextProfile = data as AccountProfile;
+      const emailChanged = normalizeEmail(profile.email) !== normalizeEmail(nextProfile.email);
       setProfile(nextProfile);
       setFirstName(nextProfile.first_name ?? "");
       setLastName(nextProfile.last_name ?? "");
       setEmail(nextProfile.email ?? "");
-      setSuccess("Profil gespeichert.");
+      setSuccess(
+        emailChanged
+          ? "Profil gespeichert. Die neue E-Mail-Adresse wird ab sofort fuer Ihr Konto verwendet."
+          : "Profil gespeichert."
+      );
+      setInfo(
+        emailChanged
+          ? "Falls spaeter eine neue Anmeldung noetig ist, verwenden Sie bitte die aktualisierte E-Mail-Adresse."
+          : ""
+      );
       setWarning(warningMessage(nextProfile.warnings));
       startTransition(() => {
         router.refresh();
@@ -173,6 +193,22 @@ export default function ProfileEditor({
           }}
         >
           {success}
+        </div>
+      )}
+
+      {info && (
+        <div
+          style={{
+            background: "#1e3a5f",
+            border: "1px solid #2563eb",
+            borderRadius: "0.75rem",
+            padding: "0.875rem 1rem",
+            color: "#93c5fd",
+            marginBottom: "1rem",
+            fontSize: "0.875rem",
+          }}
+        >
+          {info}
         </div>
       )}
 

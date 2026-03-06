@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PCWächter – Keycloak Realm Provisioning (pcw_* role model)
+# PCWÃ¤chter â€“ Keycloak Realm Provisioning (pcw_* role model)
 # =============================================================================
 # Erstellt/aktualisiert Realm pcwaechter-prod mit allen PCW-Clients, Rollen,
-# Gruppen und Protocol Mappern (inkl. Audience-Mapper für pcwaechter-api).
+# Gruppen und Protocol Mappern (inkl. Audience-Mapper fÃ¼r pcwaechter-api).
 #
 # Nutzung (innerhalb des Containers oder via docker exec):
 #   KEYCLOAK_URL=http://localhost:8080 \
@@ -32,23 +32,102 @@ fi
 
 log() { echo "[$(date -u +%H:%M:%S)] $*"; }
 
-# ── 1. Authenticate ───────────────────────────────────────────────────────────
+configure_user_profile() {
+  log "Updating user profile config (first/last name optional) ..."
+  "$KCADM" update "realms/${REALM}/users/profile" -f - << 'EOF'
+{
+  "attributes": [
+    {
+      "name": "username",
+      "displayName": "${username}",
+      "validations": {
+        "length": {
+          "min": 3,
+          "max": 255
+        },
+        "username-prohibited-characters": {},
+        "up-username-not-idn-homograph": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "email",
+      "displayName": "${email}",
+      "validations": {
+        "email": {},
+        "length": {
+          "max": 255
+        }
+      },
+      "required": {
+        "roles": ["user"]
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "firstName",
+      "displayName": "${firstName}",
+      "validations": {
+        "length": {
+          "max": 255
+        },
+        "person-name-prohibited-characters": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "lastName",
+      "displayName": "${lastName}",
+      "validations": {
+        "length": {
+          "max": 255
+        },
+        "person-name-prohibited-characters": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    }
+  ],
+  "unmanagedAttributePolicy": "DISABLED"
+}
+EOF
+  log "âœ“ User profile config updated"
+}
+
+# â”€â”€ 1. Authenticate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Authenticating with Keycloak at ${KEYCLOAK_URL} ..."
 "$KCADM" config credentials \
   --server "${KEYCLOAK_URL}" \
   --realm master \
   --user "${ADMIN_USER}" \
   --password "${ADMIN_PASS}"
-log "✓ Authenticated"
+log "âœ“ Authenticated"
 
-# ── 2. Create / update Realm ─────────────────────────────────────────────────
+# â”€â”€ 2. Create / update Realm â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating/updating realm ${REALM} ..."
 if "$KCADM" get "realms/${REALM}" --fields realm > /dev/null 2>&1; then
   "$KCADM" update "realms/${REALM}" \
     -s enabled=true \
-    -s displayName="PCWächter" \
+    -s displayName="PCWÃ¤chter" \
     -s sslRequired=EXTERNAL \
     -s registrationAllowed=false \
+    -s registrationEmailAsUsername=true \
+    -s editUsernameAllowed=false \
     -s loginWithEmailAllowed=true \
     -s duplicateEmailsAllowed=false \
     -s resetPasswordAllowed=true \
@@ -60,14 +139,16 @@ if "$KCADM" get "realms/${REALM}" --fields realm > /dev/null 2>&1; then
     -s maxDeltaTimeSeconds=43200 \
     -s passwordPolicy="length(10) and digits(1) and upperCase(1) and specialChars(1) and notUsername" \
     -s loginTheme=pcwaechter-v1
-  log "✓ Realm updated"
+  log "âœ“ Realm updated"
 else
   "$KCADM" create realms \
     -s "realm=${REALM}" \
     -s enabled=true \
-    -s displayName="PCWächter" \
+    -s displayName="PCWÃ¤chter" \
     -s sslRequired=EXTERNAL \
     -s registrationAllowed=false \
+    -s registrationEmailAsUsername=true \
+    -s editUsernameAllowed=false \
     -s loginWithEmailAllowed=true \
     -s duplicateEmailsAllowed=false \
     -s resetPasswordAllowed=true \
@@ -79,21 +160,23 @@ else
     -s maxDeltaTimeSeconds=43200 \
     -s passwordPolicy="length(10) and digits(1) and upperCase(1) and specialChars(1) and notUsername" \
     -s loginTheme=pcwaechter-v1
-  log "✓ Realm created"
+  log "âœ“ Realm created"
 fi
 
-# ── 3. Roles ─────────────────────────────────────────────────────────────────
+configure_user_profile
+
+# â”€â”€ 3. Roles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating realm roles ..."
 for ROLE in pcw_admin pcw_console pcw_user pcw_support pcw_agent; do
   if ! "$KCADM" get "roles/${ROLE}" -r "${REALM}" --fields name > /dev/null 2>&1; then
     "$KCADM" create roles -r "${REALM}" -s "name=${ROLE}"
-    log "  ✓ Role ${ROLE} created"
+    log "  âœ“ Role ${ROLE} created"
   else
     log "  ~ Role ${ROLE} already exists"
   fi
 done
 
-# ── 4. Groups + Role Mappings ────────────────────────────────────────────────
+# â”€â”€ 4. Groups + Role Mappings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating groups ..."
 create_group_with_role() {
   local GROUP_NAME="$1"
@@ -110,7 +193,7 @@ create_group_with_role() {
       log "  ! Group ${GROUP_NAME} lookup failed"
       return
     fi
-    log "  ✓ Group ${GROUP_NAME} created (${GID})"
+    log "  âœ“ Group ${GROUP_NAME} created (${GID})"
   else
     log "  ~ Group ${GROUP_NAME} already exists (${GID})"
   fi
@@ -122,7 +205,7 @@ create_group_with_role "pcw-console"  "pcw_console"
 create_group_with_role "pcw-users"    "pcw_user"
 create_group_with_role "pcw-support"  "pcw_support"
 
-# ── 5. Helper: upsert client ─────────────────────────────────────────────────
+# â”€â”€ 5. Helper: upsert client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 upsert_client() {
   local CLIENT_ID="$1"
   local JSON="$2"
@@ -132,21 +215,21 @@ upsert_client() {
 
   if [ -z "$EXISTING_UUID" ]; then
     "$KCADM" create clients -r "${REALM}" -f - <<< "${JSON}"
-    log "  ✓ Client ${CLIENT_ID} created"
+    log "  âœ“ Client ${CLIENT_ID} created"
   else
     "$KCADM" update "clients/${EXISTING_UUID}" -r "${REALM}" -f - <<< "${JSON}"
     log "  ~ Client ${CLIENT_ID} updated (${EXISTING_UUID})"
   fi
 }
 
-# ── Helper: get client internal UUID ─────────────────────────────────────────
+# â”€â”€ Helper: get client internal UUID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 get_client_uuid() {
   local CLIENT_ID="$1"
   "$KCADM" get clients -r "${REALM}" -q "clientId=${CLIENT_ID}" --fields id \
     | grep '"id"' | sed 's/.*"\(.*\)".*/\1/' | head -1
 }
 
-# ── Helper: add protocol mapper to client ────────────────────────────────────
+# â”€â”€ Helper: add protocol mapper to client â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 add_audience_mapper() {
   local CLIENT_UUID="$1"
   local MAPPER_NAME="pcwaechter-api-audience"
@@ -169,7 +252,7 @@ add_audience_mapper() {
   }
 }
 EOF
-  log "    ✓ Audience mapper added"
+  log "    âœ“ Audience mapper added"
 }
 
 add_roles_mapper() {
@@ -196,14 +279,14 @@ add_roles_mapper() {
   }
 }
 EOF
-  log "    ✓ Roles mapper added"
+  log "    âœ“ Roles mapper added"
 }
 
-# ── 6. Client: console (public, PKCE) ────────────────────────────────────────
+# â”€â”€ 6. Client: console (public, PKCE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: console ..."
 upsert_client "console" '{
   "clientId": "console",
-  "name": "PCWächter Admin Console",
+  "name": "PCWÃ¤chter Admin Console",
   "enabled": true,
   "publicClient": true,
   "standardFlowEnabled": true,
@@ -232,11 +315,11 @@ CONSOLE_UUID=$(get_client_uuid "console")
 add_audience_mapper "${CONSOLE_UUID}"
 add_roles_mapper    "${CONSOLE_UUID}"
 
-# ── 7. Client: home (confidential, NextAuth) ─────────────────────────────────
+# â”€â”€ 7. Client: home (confidential, NextAuth) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: home ..."
 upsert_client "home" "{
   \"clientId\": \"home\",
-  \"name\": \"PCWächter Home Portal\",
+  \"name\": \"PCWÃ¤chter Home Portal\",
   \"enabled\": true,
   \"publicClient\": false,
   \"standardFlowEnabled\": true,
@@ -263,11 +346,11 @@ HOME_UUID=$(get_client_uuid "home")
 add_audience_mapper "${HOME_UUID}"
 add_roles_mapper    "${HOME_UUID}"
 
-# ── 7b. Client: pcwaechter-console (canonical) ───────────────────────────────
+# â”€â”€ 7b. Client: pcwaechter-console (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-console ..."
 upsert_client "pcwaechter-console" '{
   "clientId": "pcwaechter-console",
-  "name": "PCWächter Admin Console",
+  "name": "PCWÃ¤chter Admin Console",
   "enabled": true,
   "publicClient": true,
   "standardFlowEnabled": true,
@@ -296,11 +379,11 @@ PCW_CONSOLE_UUID=$(get_client_uuid "pcwaechter-console")
 add_audience_mapper "${PCW_CONSOLE_UUID}"
 add_roles_mapper    "${PCW_CONSOLE_UUID}"
 
-# ── 7c. Client: pcwaechter-home (canonical) ──────────────────────────────────
+# â”€â”€ 7c. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-home ..."
 upsert_client "pcwaechter-home" "{
   \"clientId\": \"pcwaechter-home\",
-  \"name\": \"PCWächter Home Portal\",
+  \"name\": \"PCWÃ¤chter Home Portal\",
   \"enabled\": true,
   \"publicClient\": false,
   \"standardFlowEnabled\": true,
@@ -327,11 +410,11 @@ PCW_HOME_UUID=$(get_client_uuid "pcwaechter-home")
 add_audience_mapper "${PCW_HOME_UUID}"
 add_roles_mapper    "${PCW_HOME_UUID}"
 
-# ── 8. Client: pcwaechter-desktop (public, PKCE) ─────────────────────────────
+# â”€â”€ 8. Client: pcwaechter-desktop (public, PKCE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-desktop ..."
 upsert_client "pcwaechter-desktop" '{
   "clientId": "pcwaechter-desktop",
-  "name": "PCWächter Desktop",
+  "name": "PCWÃ¤chter Desktop",
   "enabled": true,
   "publicClient": true,
   "standardFlowEnabled": true,
@@ -353,11 +436,11 @@ DESKTOP_UUID=$(get_client_uuid "pcwaechter-desktop")
 add_audience_mapper "${DESKTOP_UUID}"
 add_roles_mapper    "${DESKTOP_UUID}"
 
-# ── 9. Client: pcwaechter-api (confidential, audience target) ────────────────
+# â”€â”€ 9. Client: pcwaechter-api (confidential, audience target) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-api ..."
 upsert_client "pcwaechter-api" '{
   "clientId": "pcwaechter-api",
-  "name": "PCWächter API",
+  "name": "PCWÃ¤chter API",
   "enabled": true,
   "publicClient": false,
   "standardFlowEnabled": false,
@@ -370,7 +453,7 @@ upsert_client "pcwaechter-api" '{
 PCW_API_UUID=$(get_client_uuid "pcwaechter-api")
 add_audience_mapper "${PCW_API_UUID}"
 
-# ── 10. Summary ───────────────────────────────────────────────────────────────
+# â”€â”€ 10. Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log ""
 log "=== Realm provisioning complete ==="
 log "Realm:             ${REALM}"

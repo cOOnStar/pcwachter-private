@@ -142,6 +142,112 @@ function Upsert-Client {
   }
 }
 
+function Set-UserProfileConfig {
+  param([string]$Realm)
+
+  $payload = @'
+{
+  "attributes": [
+    {
+      "name": "username",
+      "displayName": "${username}",
+      "validations": {
+        "length": {
+          "min": 3,
+          "max": 255
+        },
+        "username-prohibited-characters": {},
+        "up-username-not-idn-homograph": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "email",
+      "displayName": "${email}",
+      "validations": {
+        "email": {},
+        "length": {
+          "max": 255
+        }
+      },
+      "required": {
+        "roles": ["user"]
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "firstName",
+      "displayName": "${firstName}",
+      "validations": {
+        "length": {
+          "max": 255
+        },
+        "person-name-prohibited-characters": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    },
+    {
+      "name": "lastName",
+      "displayName": "${lastName}",
+      "validations": {
+        "length": {
+          "max": 255
+        },
+        "person-name-prohibited-characters": {}
+      },
+      "permissions": {
+        "view": ["admin", "user"],
+        "edit": ["admin", "user"]
+      },
+      "multivalued": false
+    }
+  ],
+  "unmanagedAttributePolicy": "DISABLED"
+}
+'@
+
+  $hostTmp = [System.IO.Path]::GetTempFileName()
+  $containerTmp = "/tmp/user-profile-$Realm.json"
+  $outFile = [System.IO.Path]::GetTempFileName()
+  $errFile = [System.IO.Path]::GetTempFileName()
+
+  try {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($hostTmp, $payload, $utf8NoBom)
+
+    $cp = Start-Process `
+      -FilePath "docker" `
+      -ArgumentList @("cp", $hostTmp, "pcwaechter-keycloak:$containerTmp") `
+      -NoNewWindow `
+      -PassThru `
+      -Wait `
+      -RedirectStandardOutput $outFile `
+      -RedirectStandardError $errFile
+
+    if ($cp.ExitCode -ne 0) {
+      $cpErr = (Get-Content -Raw $outFile) + "`n" + (Get-Content -Raw $errFile)
+      throw "docker cp failed for user profile config`n$cpErr"
+    }
+
+    Invoke-Kcadm @("update", "realms/$Realm/users/profile", "-f", $containerTmp) | Out-Null
+  }
+  finally {
+    Remove-Item -Force -ErrorAction SilentlyContinue $hostTmp, $outFile, $errFile
+  }
+}
+
 function Ensure-User {
   param(
     [string]$Realm,
@@ -207,6 +313,8 @@ if (-not $realmExists) {
     "-s", "enabled=true",
     "-s", "displayName=PCWaechter",
     "-s", "registrationAllowed=false",
+    "-s", "registrationEmailAsUsername=true",
+    "-s", "editUsernameAllowed=false",
     "-s", "rememberMe=true",
     "-s", "loginWithEmailAllowed=true",
     "-s", "duplicateEmailsAllowed=false",
@@ -221,6 +329,8 @@ Invoke-Kcadm @(
   "-s", "enabled=true",
   "-s", "displayName=PCWaechter",
   "-s", "registrationAllowed=false",
+  "-s", "registrationEmailAsUsername=true",
+  "-s", "editUsernameAllowed=false",
   "-s", "rememberMe=true",
   "-s", "loginWithEmailAllowed=true",
   "-s", "duplicateEmailsAllowed=false",
@@ -228,6 +338,8 @@ Invoke-Kcadm @(
   "-s", "sslRequired=external",
   "-s", "loginTheme=pcwaechter-v1"
 ) | Out-Null
+
+Set-UserProfileConfig -Realm $realm
 
 foreach ($r in @("owner", "admin", "manager", "user")) {
   Ensure-Role -Realm $realm -RoleName $r

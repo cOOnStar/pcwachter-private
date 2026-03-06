@@ -14,10 +14,12 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 # require_home_user : pcw_user | pcw_admin | pcw_console | pcw_support
 # require_console_owner: pcw_admin | owner | admin  (write/admin access)
 from ..db import get_db
+from ..keycloak_admin import fetch_keycloak_user, keycloak_admin_configured
 from ..models import WebhookEventV2
 from ..security_jwt import require_console_owner, require_home_user
 from ..settings import settings
@@ -71,9 +73,32 @@ def _raise_zammad_upstream_unreachable(operation: str, exc: httpx.RequestError) 
     ) from exc
 
 
-def _extract_email(user: dict) -> str:
+def _normalize_email(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    return text or None
+
+
+async def _current_keycloak_email(user: dict) -> str | None:
+    user_id = str(user.get("sub") or "").strip()
+    if not user_id or not keycloak_admin_configured():
+        return None
+
+    try:
+        record = await run_in_threadpool(fetch_keycloak_user, user_id)
+    except HTTPException as exc:
+        if exc.status_code in {404, 502, 503}:
+            logger.warning("support email fallback to token for %s: %s", user_id, exc.detail)
+            return None
+        raise
+
+    return _normalize_email(record.get("email"))
+
+
+async def _extract_email(user: dict) -> str:
     """Extract email from Keycloak userinfo dict. Raises 400 if missing."""
-    email = (user.get("email") or "").strip()
+    email = await _current_keycloak_email(user) or _normalize_email(user.get("email"))
     if not email:
         raise HTTPException(status_code=400, detail="user_email_missing")
     return email
@@ -282,7 +307,7 @@ async def list_tickets(
             return r.json()
 
         # Scoped path: find caller's Zammad user — NO user creation
-        email = _extract_email(_user)
+        email = await _extract_email(_user)
         customer_id = await _find_zammad_user(email, client)
         if customer_id is None:
             # User has no Zammad account yet; no tickets possible
@@ -304,7 +329,7 @@ async def create_ticket(
     article.internal is explicitly false so the customer can read the article.
     """
     _require_zammad_configured()
-    email = _extract_email(_user)
+    email = await _extract_email(_user)
 
     async with httpx.AsyncClient(timeout=20) as client:
         try:
@@ -362,7 +387,7 @@ async def get_ticket(
 
         if not elevated:
             # Ownership check — find Zammad user (no create)
-            email = _extract_email(_user)
+            email = await _extract_email(_user)
             customer_id = await _find_zammad_user(email, client)
             if customer_id is None:
                 # No Zammad account → can't own any ticket
@@ -400,7 +425,7 @@ async def reply_ticket(
 
         ticket = detail.json()
         if not elevated:
-            email = _extract_email(_user)
+            email = await _extract_email(_user)
             customer_id = await _find_zammad_user(email, client)
             if customer_id is None:
                 raise HTTPException(status_code=404, detail="ticket_not_found")

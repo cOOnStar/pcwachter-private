@@ -7,6 +7,11 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from ..keycloak_admin import (
+    fetch_keycloak_user,
+    keycloak_admin_configured,
+    keycloak_admin_context,
+)
 from ..security_jwt import require_home_user
 from ..settings import settings
 
@@ -56,58 +61,6 @@ def _require_user_sub(user: dict) -> str:
     if not user_id:
         raise HTTPException(status_code=401, detail="user_sub_missing")
     return user_id
-
-
-def _keycloak_admin_configured() -> bool:
-    return bool(settings.KEYCLOAK_ADMIN_USER and settings.KEYCLOAK_ADMIN_PASSWORD)
-
-
-def _keycloak_admin_context() -> tuple[str, dict[str, str]]:
-    if not _keycloak_admin_configured():
-        raise HTTPException(status_code=503, detail="profile_update_unavailable")
-
-    token_url = f"{settings.KEYCLOAK_URL}/realms/master/protocol/openid-connect/token"
-    data = {
-        "grant_type": "password",
-        "client_id": settings.KEYCLOAK_ADMIN_CLIENT_ID,
-        "username": settings.KEYCLOAK_ADMIN_USER,
-        "password": settings.KEYCLOAK_ADMIN_PASSWORD,
-    }
-    if settings.KEYCLOAK_ADMIN_CLIENT_SECRET:
-        data["client_secret"] = settings.KEYCLOAK_ADMIN_CLIENT_SECRET
-
-    try:
-        response = httpx.post(token_url, data=data, timeout=15)
-    except httpx.RequestError as exc:
-        raise HTTPException(status_code=503, detail="keycloak_unreachable") from exc
-
-    if not response.is_success:
-        raise HTTPException(status_code=503, detail="keycloak_admin_auth_failed")
-
-    token = str(response.json().get("access_token") or "").strip()
-    if not token:
-        raise HTTPException(status_code=503, detail="keycloak_admin_auth_failed")
-
-    base = f"{settings.KEYCLOAK_URL}/admin/realms/{settings.KEYCLOAK_REALM}"
-    return base, {"Authorization": f"Bearer {token}"}
-
-
-def _fetch_keycloak_user(user_id: str) -> dict:
-    base, headers = _keycloak_admin_context()
-    try:
-        response = httpx.get(f"{base}/users/{user_id}", headers=headers, timeout=15)
-    except httpx.RequestError as exc:
-        raise HTTPException(status_code=503, detail="keycloak_unreachable") from exc
-
-    if response.status_code == 404:
-        raise HTTPException(status_code=404, detail="profile_not_found")
-    if not response.is_success:
-        raise HTTPException(status_code=502, detail="keycloak_profile_lookup_failed")
-
-    payload = response.json()
-    if not isinstance(payload, dict):
-        raise HTTPException(status_code=502, detail="keycloak_profile_lookup_failed")
-    return payload
 
 
 def _profile_from_claims(user: dict, warnings: list[str] | None = None) -> ProfileResponse:
@@ -250,11 +203,11 @@ def get_me(user: dict = Depends(require_home_user)) -> MeResponse:
 def get_profile(user: dict = Depends(require_home_user)) -> ProfileResponse:
     """Return the current user's editable profile data."""
     user_id = _require_user_sub(user)
-    if not _keycloak_admin_configured():
+    if not keycloak_admin_configured():
         return _profile_from_claims(user)
 
     try:
-        record = _fetch_keycloak_user(user_id)
+        record = fetch_keycloak_user(user_id)
     except HTTPException as exc:
         if exc.status_code in {503, 502}:
             logger.warning("profile fallback to userinfo for %s: %s", user_id, exc.detail)
@@ -271,7 +224,7 @@ def update_profile(
 ) -> ProfileResponse:
     """Update the current user's profile in Keycloak and, if configured, in Zammad."""
     user_id = _require_user_sub(user)
-    record = _fetch_keycloak_user(user_id)
+    record = fetch_keycloak_user(user_id)
 
     email = _normalize_email(payload.email)
     if not email:
@@ -301,7 +254,7 @@ def update_profile(
     if isinstance(required_actions, list):
         update_payload["requiredActions"] = required_actions
 
-    base, headers = _keycloak_admin_context()
+    base, headers = keycloak_admin_context()
     try:
         response = httpx.put(
             f"{base}/users/{user_id}",
@@ -319,7 +272,7 @@ def update_profile(
     if not response.is_success:
         raise HTTPException(status_code=502, detail="keycloak_profile_update_failed")
 
-    refreshed = _fetch_keycloak_user(user_id)
+    refreshed = fetch_keycloak_user(user_id)
     warnings = _sync_zammad_profile(
         previous_email=previous_email,
         email=email,

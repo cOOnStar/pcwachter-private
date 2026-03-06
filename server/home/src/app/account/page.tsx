@@ -134,8 +134,8 @@ function buildNotifications(
         : "Ihr Support-Ticket wurde aktualisiert.",
       severity: "info" as const,
       timestamp: ticket.last_contact_agent_at ?? ticket.updated_at,
-      href: "/account/support",
-      actionLabel: "Zum Support",
+      href: "/account/support#ticket-history",
+      actionLabel: "Verlauf oeffnen",
     }));
 
   items.push(...replyNotifications);
