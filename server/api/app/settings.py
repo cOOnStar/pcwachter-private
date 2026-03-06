@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Keycloak
     KEYCLOAK_URL: str = "https://login.xn--pcwchter-2za.de"
     KEYCLOAK_REALM: str = "pcwaechter-prod"
-    KEYCLOAK_AUDIENCE: str = "pcwaechter-api"
+    KEYCLOAK_AUDIENCE: str = "api,pcwaechter-api"
     KEYCLOAK_ISSUER: str = ""
     KEYCLOAK_ADMIN_USER: str = ""
     KEYCLOAK_ADMIN_PASSWORD: str = ""
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     KEYCLOAK_ADMIN_CLIENT_SECRET: str = ""
 
     # Zugriffskontrolle
-    CONSOLE_ALLOWED_ROLES: str = "pcw_admin,pcw_console"
+    CONSOLE_ALLOWED_ROLES: str = "pcw_admin,pcw_console,pcw_support"
     CORS_ORIGINS: str = (
         "https://console.xn--pcwchter-2za.de,"
         "https://home.xn--pcwchter-2za.de"

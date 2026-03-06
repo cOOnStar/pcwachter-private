@@ -257,6 +257,30 @@ EOF
   log "    âœ“ Audience mapper added"
 }
 
+add_api_audience_mapper() {
+  local CLIENT_UUID="$1"
+  local MAPPER_NAME="api-audience"
+  if "$KCADM" get "clients/${CLIENT_UUID}/protocol-mappers/models" -r "${REALM}" \
+     | grep -q "\"${MAPPER_NAME}\"" 2>/dev/null; then
+    log "    ~ API audience mapper already present"
+    return
+  fi
+  "$KCADM" create "clients/${CLIENT_UUID}/protocol-mappers/models" -r "${REALM}" -f - << 'EOF'
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+  log "    âœ“ API audience mapper added"
+}
+
 add_roles_mapper() {
   local CLIENT_UUID="$1"
   local MAPPER_NAME="realm-roles"
@@ -315,7 +339,42 @@ upsert_client "console" '{
 }'
 CONSOLE_UUID=$(get_client_uuid "console")
 add_audience_mapper "${CONSOLE_UUID}"
+add_api_audience_mapper "${CONSOLE_UUID}"
 add_roles_mapper    "${CONSOLE_UUID}"
+
+# â”€â”€ 6b. Client: console-web (public, PKCE, canonical SPA client) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+log "Creating client: console-web ..."
+upsert_client "console-web" '{
+  "clientId": "console-web",
+  "name": "PCWÃ¤chter Admin Console Web",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "protocol": "openid-connect",
+  "redirectUris": [
+    "https://console.xn--pcwchter-2za.de/*",
+    "http://localhost:13000/*",
+    "http://localhost:13001/*",
+    "http://localhost:5173/*"
+  ],
+  "webOrigins": [
+    "https://console.xn--pcwchter-2za.de",
+    "http://localhost:13000",
+    "http://localhost:13001",
+    "http://localhost:5173"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "https://console.xn--pcwchter-2za.de/*##http://localhost:13000/*##http://localhost:13001/*##http://localhost:5173/*"
+  }
+}'
+CONSOLE_WEB_UUID=$(get_client_uuid "console-web")
+add_audience_mapper     "${CONSOLE_WEB_UUID}"
+add_api_audience_mapper "${CONSOLE_WEB_UUID}"
+add_roles_mapper        "${CONSOLE_WEB_UUID}"
 
 # â”€â”€ 7. Client: home (confidential, NextAuth) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: home ..."
@@ -379,6 +438,7 @@ upsert_client "home-web" '{
 }'
 HOME_WEB_UUID=$(get_client_uuid "home-web")
 add_audience_mapper "${HOME_WEB_UUID}"
+add_api_audience_mapper "${HOME_WEB_UUID}"
 add_roles_mapper    "${HOME_WEB_UUID}"
 
 # â”€â”€ 7c. Client: zammad (public, PKCE, native OIDC login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -440,6 +500,7 @@ upsert_client "pcwaechter-console" '{
 }'
 PCW_CONSOLE_UUID=$(get_client_uuid "pcwaechter-console")
 add_audience_mapper "${PCW_CONSOLE_UUID}"
+add_api_audience_mapper "${PCW_CONSOLE_UUID}"
 add_roles_mapper    "${PCW_CONSOLE_UUID}"
 
 # â”€â”€ 7e. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -471,6 +532,7 @@ upsert_client "pcwaechter-home" "{
 }"
 PCW_HOME_UUID=$(get_client_uuid "pcwaechter-home")
 add_audience_mapper "${PCW_HOME_UUID}"
+add_api_audience_mapper "${PCW_HOME_UUID}"
 add_roles_mapper    "${PCW_HOME_UUID}"
 
 # â”€â”€ 8. Client: pcwaechter-desktop (public, PKCE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -497,9 +559,27 @@ upsert_client "pcwaechter-desktop" '{
 }'
 DESKTOP_UUID=$(get_client_uuid "pcwaechter-desktop")
 add_audience_mapper "${DESKTOP_UUID}"
+add_api_audience_mapper "${DESKTOP_UUID}"
 add_roles_mapper    "${DESKTOP_UUID}"
 
-# â”€â”€ 9. Client: pcwaechter-api (confidential, audience target) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 9. Client: api (confidential, canonical audience target) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+log "Creating client: api ..."
+upsert_client "api" '{
+  "clientId": "api",
+  "name": "PCWÃ¤chter API",
+  "enabled": true,
+  "publicClient": false,
+  "standardFlowEnabled": false,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": true,
+  "bearerOnly": false,
+  "protocol": "openid-connect"
+}'
+API_UUID=$(get_client_uuid "api")
+add_api_audience_mapper "${API_UUID}"
+
+# â”€â”€ 9b. Client: pcwaechter-api (confidential, legacy audience target) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-api ..."
 upsert_client "pcwaechter-api" '{
   "clientId": "pcwaechter-api",
@@ -515,6 +595,32 @@ upsert_client "pcwaechter-api" '{
 }'
 PCW_API_UUID=$(get_client_uuid "pcwaechter-api")
 add_audience_mapper "${PCW_API_UUID}"
+
+# â”€â”€ 9c. Client: desktop-client (public, PKCE, canonical desktop client) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+log "Creating client: desktop-client ..."
+upsert_client "desktop-client" '{
+  "clientId": "desktop-client",
+  "name": "PCWÃ¤chter Desktop Client",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "protocol": "openid-connect",
+  "redirectUris": [
+    "http://127.0.0.1:8765/callback",
+    "http://localhost:8765/callback"
+  ],
+  "webOrigins": [],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://127.0.0.1:8765/logout##http://localhost:8765/logout"
+  }
+}'
+DESKTOP_CLIENT_UUID=$(get_client_uuid "desktop-client")
+add_api_audience_mapper "${DESKTOP_CLIENT_UUID}"
+add_roles_mapper        "${DESKTOP_CLIENT_UUID}"
 
 # â”€â”€ 10. Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log ""

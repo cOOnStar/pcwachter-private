@@ -23,7 +23,7 @@ import UpdatesPage from "./app/pages/UpdatesPage";
 import RulesPage from "./app/pages/RulesPage";
 
 export default function App() {
-  const { ready, authenticated, isAdmin } = useAuth();
+  const { ready, authenticated, hasAccess, isAdmin, logout } = useAuth();
 
   if (!ready) {
     return (
@@ -39,6 +39,31 @@ export default function App() {
       <div className="flex items-center justify-center min-h-screen flex-col gap-3 text-[var(--text-secondary)]">
         <div className="text-2xl font-bold text-[var(--text-primary)]">PCWächter Console</div>
         <p className="text-[var(--text-muted)]">Kein Zugriff. Bitte anmelden.</p>
+      </div>
+    );
+  }
+
+  if (!hasAccess()) {
+    return (
+      <div className="flex items-center justify-center min-h-screen px-6">
+        <div className="max-w-md text-center flex flex-col gap-4">
+          <div className="text-2xl font-bold text-[var(--text-primary)]">PCWächter Console</div>
+          <p className="text-[var(--text-secondary)]">
+            Ihr Konto hat keine Berechtigung fuer die Verwaltungsoberflaeche.
+          </p>
+          <p className="text-[var(--text-muted)]">
+            Bitte verwenden Sie das Kundenportal oder melden Sie sich mit einem freigeschalteten internen Konto an.
+          </p>
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={logout}
+              className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
+            >
+              Abmelden
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

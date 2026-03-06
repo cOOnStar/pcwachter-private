@@ -1,0 +1,77 @@
+{
+  "startedAt": "2026-03-06T18:01:49.830Z",
+  "loginDomainDirect": {
+    "finalUrl": "https://login.xn--pcwchter-2za.de/realms/pcwaechter-prod/protocol/openid-connect/auth?client_id=home-web&redirect_uri=https%3A%2F%2Fhome.xn--pcwchter-2za.de%2Fauth%2Fcallback&state=43a2d0f5-eb44-4bc5-b4ef-aba90d56cdb0&response_mode=fragment&response_type=code&scope=openid&nonce=c7a1d0f0-9608-4494-938c-1ba07b78aa3b&code_challenge=K6xlUrG9hF-VgXciC7R2fo2GMprE1mmNdrmqcFyddzM&code_challenge_method=S256",
+    "title": "Anmeldung bei PCWÃ¤chter",
+    "visibleSnippet": "PCWÃ¤CHTER\nBei Ihrem Konto anmelden\nE-Mail\nPasswort\nAngemeldet bleiben\nPasswort vergessen?\nAnmelden"
+  },
+  "scenarios": [
+    {
+      "name": "home-customer",
+      "startUrl": "https://home.pcwächter.de",
+      "username": "e2e.home.user@pcwaechter.local",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "apiCalls": [
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/downloads/latest-release",
+          "status": 200
+        },
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/bootstrap",
+          "status": 200
+        }
+      ],
+      "initialUrl": "https://home.xn--pcwchter-2za.de/",
+      "finalUrl": "https://home.xn--pcwchter-2za.de/dashboard",
+      "title": "web-Kundenportal",
+      "visibleSnippet": "PC-Wächter\n\nKundenportal\n\nDashboard\nLizenzen\nMeine Geräte\nSupport\nDownloads\nDokumentation\nVersion 0.0.76 • © 2026 PC-Wächter\nWillkommen zurück, E2E!\nE2E Customer\ne2e.home.user@pcwaechter.local\nDashboard\n\nHier ist eine Übersicht über Ihre PC-Wächter Installation\n\nAktive Lizenzen\n\n0\n\n0 Lizenzen gesamt\n\nRegistrierte Geräte\n\n0\n\n0 von 0 Plätzen belegt\n\nLäuft bald ab\n\n0\n\n–\n\nOffene Tickets\n\n0\n\nKeine neuen Antworten\n\nSchnellzugriff\n\nNeue Lizenz kaufen\n\nErweitern Sie Ihre PC-Wächter Installation\n\nSupport kontaktieren\n\nErstellen Sie ein neues Support-Ticket\n\nSoftware herunterladen\n\nLaden Sie die neueste Version herunter\n\nLetzte Aktivitäten\nSystem-Status\n\nAPI-Server\n\nAlle Systeme funktionieren normal\n\nLizenz-Server\n\nLizenz- und Abo-Daten sind verfuegbar\n\nSupport-System\n\nSupport ist erreichbar",
+      "containsForbidden": false
+    },
+    {
+      "name": "console-customer-denied",
+      "startUrl": "https://console.pcwächter.de",
+      "username": "e2e.home.user@pcwaechter.local",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "apiCalls": [],
+      "initialUrl": "https://console.xn--pcwchter-2za.de/",
+      "finalUrl": "https://console.xn--pcwchter-2za.de/",
+      "title": "console",
+      "visibleSnippet": "PCWächter Console\n\nIhr Konto hat keine Berechtigung fuer die Verwaltungsoberflaeche.\n\nBitte verwenden Sie das Kundenportal oder melden Sie sich mit einem freigeschalteten internen Konto an.\n\nAbmelden",
+      "containsForbidden": true
+    },
+    {
+      "name": "console-support-allowed",
+      "startUrl": "https://console.pcwächter.de",
+      "username": "e2e.support.user@pcwaechter.local",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "apiCalls": [
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/console/ui/dashboard",
+          "status": 200
+        },
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/support/admin/settings",
+          "status": 200
+        },
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/support/tickets?page=1&per_page=50",
+          "status": 200
+        }
+      ],
+      "initialUrl": "https://console.xn--pcwchter-2za.de/",
+      "finalUrl": "https://console.xn--pcwchter-2za.de/",
+      "title": "console",
+      "visibleSnippet": "PCWächter\nADMIN CONSOLE\nDashboard\nGeräte\nTelemetrie\nVERWALTUNG\nLizenzen\nAccounts\nSICHERHEIT\nRegeln & Findings\nFeature Rollouts\nAudit Log\nSYSTEM\nBenachrichtigungen\nServer\nActivity Feed\nKnowledge Base\nSupport\nE\nE2E Support\nAbmelden\nSupport\nES\nE2E Support\nDashboard\n\nEchtzeit-Übersicht der PCWächter-Infrastruktur\n\n1\nGERÄTE GESAMT\n0 gerade online\n0\nONLINE\n0\nTELEMETRIE 24H\n0\nLIZENZEN AKTIV\nvon 2 gesamt\n\nLetzte Aktivitäten\n\nKeine Aktivitäten vorhanden",
+      "containsForbidden": false,
+      "supportUrl": "https://console.xn--pcwchter-2za.de/support",
+      "supportSnippet": "PCWächter\nADMIN CONSOLE\nDashboard\nGeräte\nTelemetrie\nVERWALTUNG\nLizenzen\nAccounts\nSICHERHEIT\nRegeln & Findings\nFeature Rollouts\nAudit Log\nSYSTEM\nBenachrichtigungen\nServer\nActivity Feed\nKnowledge Base\nSupport\nE\nE2E Support\nAbmelden\nSupport\nSupport\nES\nE2E Support\nSupport\n\nTicket-Übersicht\n\nSupport-Einstellungen\n\nZAMMAD\n\nVerbunden\n\nDATEISPEICHER\n\n/data/uploads/support\n\nIDENTITY-SYNC\n\nkeycloak_sub_link\n\nZammad-User werden ueber die Keycloak-User-ID verknuepft.\n\nKunde darf Kategorie waehlen\n\nKategorien werden als echte Zammad-Gruppen angeboten.\n\nDateiupload aktiv\n\nGilt fuer Home und Console.\n\nWartungsmodus\n\nBlockiert neue Kundenanfragen und zeigt eine Meldung im Home-Portal.\n\nUpload-Limit\n\nHartes Limit durch Env: 5 MB\n\nStandard-Gruppe\n\nBitte waehlen\nUsers\n\nStandard-Prioritaet\n\nBitte waehlen\n1 low\n2 normal\n3 high\n\nKunden-Kategorien (sichtbare Gruppen)\n\nUsers\n\nWartungsmeldung\n\nNur Admins duerfen diese Werte aendern.\n\nMeine Tickets (0)\n\nKeine Tickets gefunden"
+    }
+  ],
+  "finishedAt": "2026-03-06T18:02:35.690Z"
+}

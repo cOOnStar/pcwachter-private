@@ -181,6 +181,120 @@ ensure_client_mapper "$TOKEN" "$CONSOLE_UUID" "pcwaechter-api-audience" "$(cat <
 }
 EOF
 )"
+ensure_client_mapper "$TOKEN" "$CONSOLE_UUID" "api-audience" "$(cat <<EOF
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+ensure_client_mapper "$TOKEN" "$CONSOLE_UUID" "realm-roles" "$(cat <<EOF
+{
+  "name": "realm-roles",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-usermodel-realm-role-mapper",
+  "consentRequired": false,
+  "config": {
+    "claim.name": "roles",
+    "jsonType.label": "String",
+    "multivalued": "true",
+    "userinfo.token.claim": "true",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+
+echo ""
+
+# =============================================================================
+# Client 1b: console-web (public, PKCE, kanonischer Client für die Admin Console)
+# =============================================================================
+upsert_client "$TOKEN" "$(cat <<EOF
+{
+  "clientId": "console-web",
+  "name": "PCWächter Admin Console Web",
+  "description": "Kanonischer SPA-Client für die Admin-Konsole",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "https://console.xn--pcwchter-2za.de/*",
+    "http://localhost:13000/*",
+    "http://localhost:13001/*",
+    "http://localhost:5173/*"
+  ],
+  "webOrigins": [
+    "https://console.xn--pcwchter-2za.de",
+    "http://localhost:13000",
+    "http://localhost:13001",
+    "http://localhost:5173"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "https://console.xn--pcwchter-2za.de/*##http://localhost:13000/*##http://localhost:13001/*##http://localhost:5173/*"
+  },
+  "protocol": "openid-connect"
+}
+EOF
+)"
+CONSOLE_WEB_UUID=$(get_client_uuid "$TOKEN" "console-web")
+ensure_client_mapper "$TOKEN" "$CONSOLE_WEB_UUID" "pcwaechter-api-audience" "$(cat <<EOF
+{
+  "name": "pcwaechter-api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "pcwaechter-api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+ensure_client_mapper "$TOKEN" "$CONSOLE_WEB_UUID" "api-audience" "$(cat <<EOF
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+ensure_client_mapper "$TOKEN" "$CONSOLE_WEB_UUID" "realm-roles" "$(cat <<EOF
+{
+  "name": "realm-roles",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-usermodel-realm-role-mapper",
+  "consentRequired": false,
+  "config": {
+    "claim.name": "roles",
+    "jsonType.label": "String",
+    "multivalued": "true",
+    "userinfo.token.claim": "true",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
 
 echo ""
 
@@ -270,6 +384,37 @@ ensure_client_mapper "$TOKEN" "$HOME_WEB_UUID" "pcwaechter-api-audience" "$(cat 
 }
 EOF
 )"
+ensure_client_mapper "$TOKEN" "$HOME_WEB_UUID" "api-audience" "$(cat <<EOF
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+ensure_client_mapper "$TOKEN" "$HOME_WEB_UUID" "realm-roles" "$(cat <<EOF
+{
+  "name": "realm-roles",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-usermodel-realm-role-mapper",
+  "consentRequired": false,
+  "config": {
+    "claim.name": "roles",
+    "jsonType.label": "String",
+    "multivalued": "true",
+    "userinfo.token.claim": "true",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
 
 echo ""
 
@@ -309,7 +454,28 @@ EOF
 echo ""
 
 # =============================================================================
-# Client 5: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
+# Client 5: api (confidential, Audience-Target für die Backend-API)
+# =============================================================================
+upsert_client "$TOKEN" "$(cat <<EOF
+{
+  "clientId": "api",
+  "name": "PCWächter API",
+  "description": "Kanonischer Audience-Client für die Backend-API",
+  "enabled": true,
+  "publicClient": false,
+  "standardFlowEnabled": false,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": true,
+  "protocol": "openid-connect"
+}
+EOF
+)"
+
+echo ""
+
+# =============================================================================
+# Client 6: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
 # =============================================================================
 upsert_client "$TOKEN" "$(cat <<EOF
 {
@@ -332,6 +498,66 @@ upsert_client "$TOKEN" "$(cat <<EOF
     "post.logout.redirect.uris": "http://127.0.0.1:8765/logout"
   },
   "protocol": "openid-connect"
+}
+EOF
+)"
+DESKTOP_UUID=$(get_client_uuid "$TOKEN" "pcwaechter-desktop")
+ensure_client_mapper "$TOKEN" "$DESKTOP_UUID" "api-audience" "$(cat <<EOF
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+
+echo ""
+
+# =============================================================================
+# Client 7: desktop-client (public, PKCE, kanonischer Desktop-Client)
+# =============================================================================
+upsert_client "$TOKEN" "$(cat <<EOF
+{
+  "clientId": "desktop-client",
+  "name": "PCWächter Desktop Client",
+  "description": "Kanonischer PKCE-Client für den Desktop",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "http://127.0.0.1:8765/callback",
+    "http://localhost:8765/callback"
+  ],
+  "webOrigins": [],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://127.0.0.1:8765/logout##http://localhost:8765/logout"
+  },
+  "protocol": "openid-connect"
+}
+EOF
+)"
+DESKTOP_CLIENT_UUID=$(get_client_uuid "$TOKEN" "desktop-client")
+ensure_client_mapper "$TOKEN" "$DESKTOP_CLIENT_UUID" "api-audience" "$(cat <<EOF
+{
+  "name": "api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
 }
 EOF
 )"

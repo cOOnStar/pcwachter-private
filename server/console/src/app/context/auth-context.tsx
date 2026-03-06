@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-const ACCESS_ROLES = new Set(["pcw_admin", "pcw_console", "owner", "admin"]);
+const ACCESS_ROLES = new Set(["pcw_admin", "pcw_console", "pcw_support", "owner", "admin"]);
 const ADMIN_ROLES = new Set(["pcw_admin", "owner", "admin"]);
 const SUPPORT_ROLES = new Set(["pcw_support"]);
 
@@ -39,7 +39,7 @@ const AuthContext = createContext<AuthContextValue>({
 const keycloakInstance = new Keycloak({
   url: import.meta.env.VITE_KEYCLOAK_URL ?? "https://login.xn--pcwchter-2za.de",
   realm: import.meta.env.VITE_KEYCLOAK_REALM ?? "pcwaechter-prod",
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? "console",
+  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID ?? "console-web",
 });
 
 let _kc = keycloakInstance;

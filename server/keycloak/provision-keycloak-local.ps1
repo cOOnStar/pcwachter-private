@@ -391,14 +391,15 @@ Invoke-Kcadm @(
 
 Set-UserProfileConfig -Realm $realm
 
-foreach ($r in @("owner", "admin", "manager", "user")) {
+foreach ($r in @("owner", "admin", "manager", "user", "pcw_admin", "pcw_console", "pcw_support", "pcw_user")) {
   Ensure-Role -Realm $realm -RoleName $r
 }
 
 $groupRoleMap = @{
-  "console-owner" = "owner"
-  "console-admin" = "admin"
-  "console-user" = "user"
+  "pcw-admins" = "pcw_admin"
+  "pcw-console" = "pcw_console"
+  "pcw-support" = "pcw_support"
+  "pcw-users" = "pcw_user"
 }
 $groupIds = @{}
 foreach ($g in $groupRoleMap.Keys) {
@@ -445,6 +446,97 @@ Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleClientId -MapperNa
     "included.custom.audience" = "pcwaechter-api"
     "access.token.claim"       = "true"
     "id.token.claim"           = "false"
+  }
+}
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleClientId -MapperName "api-audience" -MapperConfig @{
+  name            = "api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleClientId -MapperName "realm-roles" -MapperConfig @{
+  name            = "realm-roles"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-usermodel-realm-role-mapper"
+  consentRequired = $false
+  config          = @{
+    "claim.name"            = "roles"
+    "jsonType.label"        = "String"
+    "multivalued"           = "true"
+    "userinfo.token.claim"  = "true"
+    "access.token.claim"    = "true"
+    "id.token.claim"        = "false"
+  }
+}
+
+$consoleWebClientConfig = @{
+  clientId                  = "console-web"
+  name                      = "PCWaechter_Admin_Console_Web"
+  description               = "Canonical_console_spa"
+  enabled                   = $true
+  publicClient              = $true
+  standardFlowEnabled       = $true
+  implicitFlowEnabled       = $false
+  directAccessGrantsEnabled = $false
+  serviceAccountsEnabled    = $false
+  protocol                  = "openid-connect"
+  redirectUris              = @(
+    "https://console.xn--pcwchter-2za.de/*",
+    "http://localhost:13000/*",
+    "http://localhost:13001/*",
+    "http://localhost:5173/*"
+  )
+  webOrigins                = @(
+    "https://console.xn--pcwchter-2za.de",
+    "http://localhost:13000",
+    "http://localhost:13001",
+    "http://localhost:5173"
+  )
+  attributes                = @{
+    "pkce.code.challenge.method" = "S256"
+    "post.logout.redirect.uris" = "https://console.xn--pcwchter-2za.de/*##http://localhost:13000/*##http://localhost:13001/*##http://localhost:5173/*"
+  }
+}
+$consoleWebClientId = Upsert-Client -Realm $realm -ClientId "console-web" -ClientConfig $consoleWebClientConfig
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleWebClientId -MapperName "pcwaechter-api-audience" -MapperConfig @{
+  name            = "pcwaechter-api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "pcwaechter-api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleWebClientId -MapperName "api-audience" -MapperConfig @{
+  name            = "api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleWebClientId -MapperName "realm-roles" -MapperConfig @{
+  name            = "realm-roles"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-usermodel-realm-role-mapper"
+  consentRequired = $false
+  config          = @{
+    "claim.name"            = "roles"
+    "jsonType.label"        = "String"
+    "multivalued"           = "true"
+    "userinfo.token.claim"  = "true"
+    "access.token.claim"    = "true"
+    "id.token.claim"        = "false"
   }
 }
 
@@ -518,6 +610,31 @@ Ensure-ProtocolMapper -Realm $realm -ClientInternalId $homeWebClientId -MapperNa
     "id.token.claim"           = "false"
   }
 }
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $homeWebClientId -MapperName "api-audience" -MapperConfig @{
+  name            = "api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $homeWebClientId -MapperName "realm-roles" -MapperConfig @{
+  name            = "realm-roles"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-usermodel-realm-role-mapper"
+  consentRequired = $false
+  config          = @{
+    "claim.name"            = "roles"
+    "jsonType.label"        = "String"
+    "multivalued"           = "true"
+    "userinfo.token.claim"  = "true"
+    "access.token.claim"    = "true"
+    "id.token.claim"        = "false"
+  }
+}
 
 $zammadClientConfig = @{
   clientId                  = "zammad"
@@ -569,11 +686,70 @@ $desktopClientConfig = @{
   }
 }
 $desktopClientId = Upsert-Client -Realm $realm -ClientId "pcwaechter-desktop" -ClientConfig $desktopClientConfig
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $desktopClientId -MapperName "api-audience" -MapperConfig @{
+  name            = "api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
+
+$apiClientConfig = @{
+  clientId                  = "api"
+  name                      = "PCWaechter_API"
+  description               = "Canonical_API_audience_client"
+  enabled                   = $true
+  publicClient              = $false
+  standardFlowEnabled       = $false
+  implicitFlowEnabled       = $false
+  directAccessGrantsEnabled = $false
+  serviceAccountsEnabled    = $true
+  protocol                  = "openid-connect"
+}
+$apiClientId = Upsert-Client -Realm $realm -ClientId "api" -ClientConfig $apiClientConfig
+
+$desktopCanonicalClientConfig = @{
+  clientId                  = "desktop-client"
+  name                      = "PCWaechter_Desktop_Client_Canonical"
+  description               = "Canonical_desktop_client"
+  enabled                   = $true
+  publicClient              = $true
+  standardFlowEnabled       = $true
+  implicitFlowEnabled       = $false
+  directAccessGrantsEnabled = $false
+  serviceAccountsEnabled    = $false
+  protocol                  = "openid-connect"
+  redirectUris              = @(
+    "http://127.0.0.1:8765/callback",
+    "http://localhost:8765/callback"
+  )
+  webOrigins                = @()
+  attributes                = @{
+    "pkce.code.challenge.method" = "S256"
+    "post.logout.redirect.uris" = "http://127.0.0.1:8765/logout##http://localhost:8765/logout"
+  }
+}
+$desktopCanonicalClientId = Upsert-Client -Realm $realm -ClientId "desktop-client" -ClientConfig $desktopCanonicalClientConfig
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $desktopCanonicalClientId -MapperName "api-audience" -MapperConfig @{
+  name            = "api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
 
 $usersToEnsure = @(
-  @{ username = "owner"; email = "owner@pcwaechter.local"; firstName = "Console"; lastName = "Owner"; role = "owner"; group = "console-owner"; password = $ownerPass },
-  @{ username = "admin-console"; email = "admin@pcwaechter.local"; firstName = "Console"; lastName = "Admin"; role = "admin"; group = "console-admin"; password = $adminPass },
-  @{ username = "user-console"; email = "user@pcwaechter.local"; firstName = "Console"; lastName = "User"; role = "user"; group = "console-user"; password = $userPass }
+  @{ username = "owner"; email = "owner@pcwaechter.local"; firstName = "Console"; lastName = "Owner"; role = "pcw_admin"; group = "pcw-admins"; password = $ownerPass },
+  @{ username = "admin-console"; email = "admin@pcwaechter.local"; firstName = "Console"; lastName = "Admin"; role = "pcw_console"; group = "pcw-console"; password = $adminPass },
+  @{ username = "support-console"; email = "support@pcwaechter.local"; firstName = "Console"; lastName = "Support"; role = "pcw_support"; group = "pcw-support"; password = $userPass }
 )
 
 foreach ($u in $usersToEnsure) {
@@ -600,15 +776,18 @@ $result = [pscustomobject]@{
   homeClientSecret = $homeSecret
   clientIds = [pscustomobject]@{
     console = $consoleClientId
+    console_web = $consoleWebClientId
     home = $homeClientId
     home_web = $homeWebClientId
+    api = $apiClientId
     zammad = $zammadClientId
     desktop = $desktopClientId
+    desktop_client = $desktopCanonicalClientId
   }
   bootstrapPasswords = [pscustomobject]@{
     owner = $ownerPass
     admin_console = $adminPass
-    user_console = $userPass
+    support_console = $userPass
   }
   users = $usersOut
 }

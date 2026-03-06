@@ -11,8 +11,8 @@ param(
   [string]$Email,
   [Parameter(Mandatory = $true)]
   [string]$Password,
-  [string]$Role = "admin",
-  [string]$GroupName = "console-admin"
+  [string]$Role = "pcw_admin",
+  [string]$GroupName = "pcw-admins"
 )
 
 $ErrorActionPreference = "Stop"

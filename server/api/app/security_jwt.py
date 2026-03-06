@@ -108,6 +108,10 @@ def _allowed_roles() -> set[str]:
     return {r.strip().lower() for r in settings.CONSOLE_ALLOWED_ROLES.split(",") if r.strip()}
 
 
+def _allowed_audiences() -> set[str]:
+    return {aud.strip() for aud in settings.KEYCLOAK_AUDIENCE.split(",") if aud.strip()}
+
+
 def _claim_roles(value: object) -> set[str]:
     if isinstance(value, list):
         return {str(item).strip().lower() for item in value if str(item).strip()}
@@ -131,6 +135,15 @@ def _extract_roles(claims: dict) -> set[str]:
     return roles
 
 
+def _claim_audiences(claims: dict) -> set[str]:
+    aud = claims.get("aud")
+    if isinstance(aud, str):
+        return {aud.strip()} if aud.strip() else set()
+    if isinstance(aud, list):
+        return {str(item).strip() for item in aud if str(item).strip()}
+    return set()
+
+
 # ---------------------------------------------------------------------------
 # Core verification
 # ---------------------------------------------------------------------------
@@ -143,14 +156,16 @@ def _verify_token(token: str) -> dict:
             token,
             jwks,
             algorithms=["RS256"],
-            audience=settings.KEYCLOAK_AUDIENCE,
             issuer=_expected_issuer(),
             options={
                 "verify_exp": True,
-                "verify_aud": True,
+                "verify_aud": False,
                 "verify_iss": True,
             },
         )
+        allowed_audiences = _allowed_audiences()
+        if allowed_audiences and not _claim_audiences(claims).intersection(allowed_audiences):
+            raise HTTPException(status_code=401, detail="invalid token: audience mismatch")
         return claims
     except JWTError as exc:
         raise HTTPException(status_code=401, detail=f"invalid token: {exc}") from exc
@@ -211,22 +226,22 @@ def require_verified_token(authorization: str | None = Header(default=None)) -> 
 # Public guards
 # ---------------------------------------------------------------------------
 
-# Read access: new roles (pcw_admin, pcw_console) UNION legacy roles (owner, admin).
-# CONSOLE_ALLOWED_ROLES env var adds pcw_admin + pcw_console; we extend with legacy set.
-_CONSOLE_USER_ROLES: frozenset[str] = frozenset({"pcw_admin", "pcw_console", "owner", "admin"})
+# Read access: new roles (pcw_admin, pcw_console, pcw_support) UNION legacy roles (owner, admin).
+# CONSOLE_ALLOWED_ROLES env var adds canonical roles; we extend with legacy set.
+_CONSOLE_USER_ROLES: frozenset[str] = frozenset({"pcw_admin", "pcw_console", "pcw_support", "owner", "admin"})
 
 # Write/action access: admin-tier roles only (pcw_console is READ-ONLY).
 _CONSOLE_OWNER_ROLES: frozenset[str] = frozenset({"pcw_admin", "owner", "admin"})
 
 
 def require_console_user(authorization: str | None = Header(default=None)) -> dict:
-    """Read access: pcw_admin | pcw_console | owner | admin."""
+    """Read access: pcw_admin | pcw_console | pcw_support | owner | admin."""
     # Merge env-configured roles with hardcoded legacy roles.
     allowed = _allowed_roles() | _CONSOLE_USER_ROLES
     return _require_console_roles(
         authorization=authorization,
         required_roles=allowed,
-        error_message="insufficient role (require pcw_admin, pcw_console, owner, or admin)",
+        error_message="insufficient role (require pcw_admin, pcw_console, pcw_support, owner, or admin)",
     )
 
 
