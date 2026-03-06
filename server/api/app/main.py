@@ -73,6 +73,10 @@ _PRE_AUTH_RULES: dict[str, tuple] = {
 # Body size limit (raw bytes, before Pydantic parsing)
 # ---------------------------------------------------------------------------
 _MAX_BODY_BYTES = 1 * 1024 * 1024  # 1 MB
+_BODY_SIZE_EXEMPT_PATHS = {
+    "/support/attachments",
+    "/api/v1/support/attachments",
+}
 
 app = FastAPI(title="PCWaechter API", version="1.0.0")
 app.state.limiter = limiter
@@ -82,6 +86,8 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.middleware("http")
 async def body_size_limit(request: Request, call_next):
+    if request.url.path in _BODY_SIZE_EXEMPT_PATHS:
+        return await call_next(request)
     content_length = request.headers.get("content-length")
     if content_length and int(content_length) > _MAX_BODY_BYTES:
         return JSONResponse(

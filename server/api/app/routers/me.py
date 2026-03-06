@@ -6,14 +6,16 @@ import logging
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from ..db import get_db
 from ..keycloak_admin import (
     fetch_keycloak_user,
     keycloak_admin_configured,
     keycloak_admin_context,
 )
 from ..security_jwt import require_home_user
-from ..settings import settings
+from ..services.support_service import normalize_email, normalize_name, sync_zammad_profile_for_identity
 
 router = APIRouter(tags=["me"])
 logger = logging.getLogger(__name__)
@@ -42,20 +44,6 @@ class ProfileUpdateIn(BaseModel):
     last_name: str | None = Field(default=None, max_length=255)
 
 
-def _normalize_email(value: object) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip().lower()
-    return text or None
-
-
-def _normalize_name(value: object) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
 def _require_user_sub(user: dict) -> str:
     user_id = str(user.get("sub") or "").strip()
     if not user_id:
@@ -64,15 +52,15 @@ def _require_user_sub(user: dict) -> str:
 
 
 def _profile_from_claims(user: dict, warnings: list[str] | None = None) -> ProfileResponse:
-    first_name = _normalize_name(user.get("given_name") or user.get("firstName"))
-    last_name = _normalize_name(user.get("family_name") or user.get("lastName"))
-    display_name = _normalize_name(user.get("name"))
+    first_name = normalize_name(user.get("given_name") or user.get("firstName"))
+    last_name = normalize_name(user.get("family_name") or user.get("lastName"))
+    display_name = normalize_name(user.get("name"))
     if not display_name:
-        display_name = " ".join(part for part in [first_name, last_name] if part) or _normalize_email(user.get("email"))
+        display_name = " ".join(part for part in [first_name, last_name] if part) or normalize_email(user.get("email"))
 
     return ProfileResponse(
         sub=str(user.get("sub") or ""),
-        email=_normalize_email(user.get("email")),
+        email=normalize_email(user.get("email")),
         first_name=first_name,
         last_name=last_name,
         name=display_name or None,
@@ -82,109 +70,21 @@ def _profile_from_claims(user: dict, warnings: list[str] | None = None) -> Profi
 
 
 def _profile_from_keycloak_record(record: dict, warnings: list[str] | None = None) -> ProfileResponse:
-    first_name = _normalize_name(record.get("firstName"))
-    last_name = _normalize_name(record.get("lastName"))
+    first_name = normalize_name(record.get("firstName"))
+    last_name = normalize_name(record.get("lastName"))
     display_name = " ".join(part for part in [first_name, last_name] if part)
     if not display_name:
-        display_name = _normalize_name(record.get("email")) or _normalize_name(record.get("username"))
+        display_name = normalize_name(record.get("email")) or normalize_name(record.get("username"))
 
     return ProfileResponse(
         sub=str(record.get("id") or ""),
-        email=_normalize_email(record.get("email")),
+        email=normalize_email(record.get("email")),
         first_name=first_name,
         last_name=last_name,
         name=display_name or None,
         email_verified=bool(record.get("emailVerified")) if record.get("emailVerified") is not None else None,
         warnings=warnings or [],
     )
-
-
-def _zammad_headers() -> dict[str, str] | None:
-    if not settings.ZAMMAD_BASE_URL or not settings.ZAMMAD_API_TOKEN:
-        return None
-    return {
-        "Authorization": f"Token token={settings.ZAMMAD_API_TOKEN}",
-        "Content-Type": "application/json",
-    }
-
-
-def _sync_zammad_profile(
-    *,
-    previous_email: str | None,
-    email: str,
-    first_name: str,
-    last_name: str,
-) -> list[str]:
-    headers = _zammad_headers()
-    if headers is None:
-        return []
-
-    lookup_email = previous_email or email
-    if not lookup_email:
-        return []
-
-    base = settings.ZAMMAD_BASE_URL.rstrip("/")
-    try:
-        search_resp = httpx.get(
-            f"{base}/api/v1/users/search",
-            params={"query": lookup_email},
-            headers=headers,
-            timeout=15,
-        )
-    except httpx.RequestError as exc:
-        logger.warning("zammad profile search failed for %s: %s", lookup_email, exc)
-        return ["support_sync_unreachable"]
-
-    if not search_resp.is_success:
-        logger.warning(
-            "zammad profile search returned %s for %s",
-            search_resp.status_code,
-            lookup_email,
-        )
-        return ["support_sync_failed"]
-
-    search_payload = search_resp.json()
-    if not isinstance(search_payload, list):
-        logger.warning("zammad profile search returned unexpected payload for %s", lookup_email)
-        return ["support_sync_failed"]
-
-    match = next((row for row in search_payload if isinstance(row, dict)), None)
-    if match is None:
-        return []
-
-    zammad_user_id = match.get("id")
-    if zammad_user_id is None:
-        return ["support_sync_failed"]
-
-    login = str(match.get("login") or "").strip()
-    update_payload: dict[str, object] = {
-        "email": email,
-        "firstname": first_name,
-        "lastname": last_name,
-    }
-    if not login or (previous_email and login.lower() == previous_email.lower()):
-        update_payload["login"] = email
-
-    try:
-        update_resp = httpx.put(
-            f"{base}/api/v1/users/{zammad_user_id}",
-            headers=headers,
-            json=update_payload,
-            timeout=15,
-        )
-    except httpx.RequestError as exc:
-        logger.warning("zammad profile update failed for %s: %s", lookup_email, exc)
-        return ["support_sync_unreachable"]
-
-    if not update_resp.is_success:
-        logger.warning(
-            "zammad profile update returned %s for %s",
-            update_resp.status_code,
-            lookup_email,
-        )
-        return ["support_sync_failed"]
-
-    return []
 
 
 @router.get("/me", response_model=MeResponse)
@@ -218,21 +118,22 @@ def get_profile(user: dict = Depends(require_home_user)) -> ProfileResponse:
 
 
 @router.patch("/me/profile", response_model=ProfileResponse)
-def update_profile(
+async def update_profile(
     payload: ProfileUpdateIn,
     user: dict = Depends(require_home_user),
+    db: Session = Depends(get_db),
 ) -> ProfileResponse:
     """Update the current user's profile in Keycloak and, if configured, in Zammad."""
     user_id = _require_user_sub(user)
     record = fetch_keycloak_user(user_id)
 
-    email = _normalize_email(payload.email)
+    email = normalize_email(payload.email)
     if not email:
         raise HTTPException(status_code=400, detail="email_required")
 
-    first_name = _normalize_name(payload.first_name) or ""
-    last_name = _normalize_name(payload.last_name) or ""
-    previous_email = _normalize_email(record.get("email")) or _normalize_email(user.get("email"))
+    first_name = normalize_name(payload.first_name) or ""
+    last_name = normalize_name(payload.last_name) or ""
+    previous_email = normalize_email(record.get("email")) or normalize_email(user.get("email"))
     username = str(record.get("username") or "").strip()
     should_update_username = not username or (previous_email and username.lower() == previous_email.lower())
 
@@ -273,8 +174,9 @@ def update_profile(
         raise HTTPException(status_code=502, detail="keycloak_profile_update_failed")
 
     refreshed = fetch_keycloak_user(user_id)
-    warnings = _sync_zammad_profile(
-        previous_email=previous_email,
+    warnings = await sync_zammad_profile_for_identity(
+        db=db,
+        keycloak_user_id=user_id,
         email=email,
         first_name=first_name,
         last_name=last_name,

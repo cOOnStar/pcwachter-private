@@ -3,6 +3,18 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "https://api.xn--pcwchter-2za.de";
 
+function apiBases(): string[] {
+  const candidates = [
+    process.env.API_INTERNAL_URL,
+    process.env.NEXT_PUBLIC_API_URL,
+    "https://api.xn--pcwchter-2za.de",
+  ]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(candidates)];
+}
+
 export interface PlanItem {
   id: string;
   label: string;
@@ -21,16 +33,33 @@ export interface PlanItem {
 }
 
 export async function getPlans(): Promise<PlanItem[]> {
-  try {
-    const res = await fetch(`${API_URL}/console/public/plans`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.items ?? []) as PlanItem[];
-  } catch {
-    return [];
+  return (await getPlansResult()).items;
+}
+
+export async function getPlansResult(): Promise<{
+  items: PlanItem[];
+  error: string | null;
+}> {
+  let lastError: string | null = null;
+
+  for (const base of apiBases()) {
+    try {
+      const res = await fetch(`${base}/console/public/plans`, {
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) {
+        lastError = `plans_fetch_failed_${res.status}`;
+        continue;
+      }
+
+      const data = await res.json();
+      return { items: (data.items ?? []) as PlanItem[], error: null };
+    } catch {
+      lastError = "plans_fetch_failed";
+    }
   }
+
+  return { items: [], error: lastError };
 }
 
 export interface HomeDevice {
@@ -224,7 +253,7 @@ function normalizeSupportTicket(value: unknown): SupportTicketSummary | null {
   };
 }
 
-function normalizeSupportTickets(payload: unknown): SupportTicketSummary[] {
+export function normalizeSupportTickets(payload: unknown): SupportTicketSummary[] {
   if (Array.isArray(payload)) {
     return payload
       .map(normalizeSupportTicket)
@@ -277,5 +306,72 @@ export async function getSupportTickets(
     return normalizeSupportTickets(data);
   } catch {
     return [];
+  }
+}
+
+export interface HomeNotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  meta: Record<string, unknown> | null;
+  created_at: string | null;
+  read_at: string | null;
+}
+
+function normalizeNotification(value: unknown): HomeNotificationItem | null {
+  const record = asRecord(value);
+  const id = record ? asString(record.id) ?? String(record.id ?? "") : "";
+  if (!record || !id) return null;
+
+  const meta = asRecord(record.meta);
+  return {
+    id,
+    type: asString(record.type) ?? "notification",
+    title: asString(record.title) ?? "Benachrichtigung",
+    body: asString(record.body) ?? "",
+    meta,
+    created_at: asString(record.created_at),
+    read_at: asString(record.read_at),
+  };
+}
+
+export async function getHomeNotifications(
+  accessToken: string,
+  options?: {
+    limit?: number;
+    unreadOnly?: boolean;
+    typePrefix?: string;
+  }
+): Promise<{ items: HomeNotificationItem[]; total: number }> {
+  try {
+    const params = new URLSearchParams();
+    params.set("limit", String(options?.limit ?? 20));
+    if (options?.unreadOnly) {
+      params.set("unread_only", "true");
+    }
+    if (options?.typePrefix) {
+      params.set("type_prefix", options.typePrefix);
+    }
+
+    const res = await fetch(`${API_URL}/api/v1/notifications?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return { items: [], total: 0 };
+    }
+
+    const data = await res.json();
+    const record = asRecord(data);
+    const items = Array.isArray(record?.items)
+      ? record.items
+          .map(normalizeNotification)
+          .filter((item): item is HomeNotificationItem => item !== null)
+      : [];
+    const total = asNumber(record?.total) ?? items.length;
+    return { items, total };
+  } catch {
+    return { items: [], total: 0 };
   }
 }

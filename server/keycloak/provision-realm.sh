@@ -23,6 +23,8 @@ REALM="${REALM:-pcwaechter-prod}"
 ADMIN_USER="${KC_ADMIN_USER:-admin}"
 ADMIN_PASS="${KC_ADMIN_PASSWORD:?KC_ADMIN_PASSWORD must be set}"
 HOME_SECRET="${HOME_CLIENT_SECRET:-$(cat /proc/sys/kernel/random/uuid | tr -d '-')}"
+ZAMMAD_PUBLIC_URL="${ZAMMAD_PUBLIC_URL:-https://support.xn--pcwchter-2za.de}"
+ZAMMAD_PUBLIC_URL="${ZAMMAD_PUBLIC_URL%/}"
 
 KCADM="//opt//keycloak//bin//kcadm.sh"
 # If running INSIDE the container, use the direct path:
@@ -346,7 +348,35 @@ HOME_UUID=$(get_client_uuid "home")
 add_audience_mapper "${HOME_UUID}"
 add_roles_mapper    "${HOME_UUID}"
 
-# â”€â”€ 7b. Client: pcwaechter-console (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 7b. Client: zammad (public, PKCE, native OIDC login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+log "Creating client: zammad ..."
+upsert_client "zammad" '{
+  "clientId": "zammad",
+  "name": "PCWÃ¤chter Support",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "protocol": "openid-connect",
+  "redirectUris": [
+    "http://localhost:3001/auth/openid_connect/callback",
+    "'"${ZAMMAD_PUBLIC_URL}"'/auth/openid_connect/callback"
+  ],
+  "webOrigins": [
+    "http://localhost:3001",
+    "'"${ZAMMAD_PUBLIC_URL}"'"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://localhost:3001/*##'"${ZAMMAD_PUBLIC_URL}"'/*",
+    "backchannel.logout.session.required": "true",
+    "backchannel.logout.url": "'"${ZAMMAD_PUBLIC_URL}"'/auth/openid_connect/backchannel_logout"
+  }
+}'
+
+# â”€â”€ 7c. Client: pcwaechter-console (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-console ..."
 upsert_client "pcwaechter-console" '{
   "clientId": "pcwaechter-console",
@@ -379,7 +409,7 @@ PCW_CONSOLE_UUID=$(get_client_uuid "pcwaechter-console")
 add_audience_mapper "${PCW_CONSOLE_UUID}"
 add_roles_mapper    "${PCW_CONSOLE_UUID}"
 
-# â”€â”€ 7c. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 7d. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-home ..."
 upsert_client "pcwaechter-home" "{
   \"clientId\": \"pcwaechter-home\",

@@ -531,6 +531,89 @@ export interface SupportAttachment {
   filename: string;
   size: number;
   created_at: string;
+  mime_type?: string;
+}
+
+export interface SupportGroupOption {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface SupportPriorityOption {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface SupportStateOption {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface SupportAdminSettings {
+  allow_customer_group_selection: boolean;
+  customer_visible_group_ids: number[];
+  default_group_id: number | null;
+  default_priority_id: number | null;
+  uploads_enabled: boolean;
+  uploads_max_bytes: number;
+  uploads_max_bytes_ceiling: number;
+  maintenance_mode: boolean;
+  maintenance_message: string;
+  storage_root: string;
+  zammad_configured: boolean;
+  zammad_reachable: boolean;
+  zammad_error: string | null;
+  groups: SupportGroupOption[];
+  priorities: SupportPriorityOption[];
+  states: SupportStateOption[];
+  identity_sync_mode: string;
+  zammad_oidc_recommended: boolean;
+}
+
+function asSupportRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function asSupportString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
+function normalizeSupportTicketList(payload: unknown): PagedResponse<SupportTicket> {
+  const itemsSource = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as { items?: unknown[] })?.items)
+      ? ((payload as { items: unknown[] }).items ?? [])
+      : [];
+
+  const items = itemsSource
+    .map((entry): SupportTicket | null => {
+      const record = asSupportRecord(entry);
+      if (!record) return null;
+      const id = asSupportString(record.id);
+      if (!id) return null;
+      return {
+        id,
+        subject: asSupportString(record.subject || record.title) || `Ticket #${id}`,
+        state: asSupportString(record.state || record.state_id) || "unbekannt",
+        priority: asSupportString(record.priority || record.priority_id) || "unbekannt",
+        created_at: asSupportString(record.created_at),
+        updated_at: asSupportString(record.updated_at),
+        customer_name: asSupportString(record.customer_name) || undefined,
+        customer_email: asSupportString(record.customer_email) || undefined,
+      };
+    })
+    .filter((entry): entry is SupportTicket => entry !== null);
+
+  const total = asSupportRecord(payload) && typeof (payload as { total?: unknown }).total === "number"
+    ? ((payload as { total: number }).total ?? items.length)
+    : items.length;
+
+  return { items, total };
 }
 
 export async function listSupportTickets(params?: {
@@ -542,21 +625,25 @@ export async function listSupportTickets(params?: {
   if (params?.all) q.set("all", "true");
   if (params?.page) q.set("page", String(params.page));
   if (params?.perPage) q.set("per_page", String(params.perPage));
-  return api(`/support/tickets?${q}`);
+  const payload = await api<unknown>(`/support/tickets?${q}`);
+  return normalizeSupportTicketList(payload);
 }
 
 export async function getSupportTicket(id: string): Promise<SupportTicketDetail> {
   return api(`/support/tickets/${encodeURIComponent(id)}`);
 }
 
-export async function replySupportTicket(id: string, body: string): Promise<{ ok: boolean }> {
+export async function replySupportTicket(
+  id: string,
+  payload: { body: string; attachment_ids?: string[] }
+): Promise<{ ok: boolean }> {
   return api(`/support/tickets/${encodeURIComponent(id)}/reply`, {
     method: "POST",
-    body: JSON.stringify({ body }),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function uploadSupportAttachment(file: File): Promise<{ id: string; filename: string }> {
+export async function uploadSupportAttachment(file: File): Promise<SupportAttachment> {
   const token = await getKeycloakToken();
   const formData = new FormData();
   formData.append("file", file);
@@ -570,6 +657,26 @@ export async function uploadSupportAttachment(file: File): Promise<{ id: string;
     throw Object.assign(new Error(`${res.status} ${text || res.statusText}`), { status: res.status });
   }
   return res.json();
+}
+
+export async function getSupportAdminSettings(): Promise<SupportAdminSettings> {
+  return api("/support/admin/settings");
+}
+
+export async function updateSupportAdminSettings(payload: {
+  allow_customer_group_selection: boolean;
+  customer_visible_group_ids: number[];
+  default_group_id: number | null;
+  default_priority_id: number | null;
+  uploads_enabled: boolean;
+  uploads_max_bytes: number;
+  maintenance_mode: boolean;
+  maintenance_message: string;
+}): Promise<SupportAdminSettings> {
+  return api("/support/admin/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function diagZammadRoles(): Promise<{ roles: string[]; user_id?: string }> {

@@ -39,7 +39,7 @@ export default function NavBar() {
               <button
                 className="btn btn-outline"
                 style={{ fontSize: "0.85rem" }}
-                onClick={() => signOut()}
+                onClick={() => signOut({ callbackUrl: "/login?callbackUrl=%2Faccount" })}
               >
                 Abmelden
               </button>

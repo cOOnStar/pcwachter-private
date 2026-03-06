@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
-import { getPlans } from "@/lib/api";
+import { getPlansResult } from "@/lib/api";
 
 export async function GET() {
-  const plans = await getPlans();
-  return NextResponse.json({ items: plans });
+  const result = await getPlansResult();
+  if (result.error) {
+    return NextResponse.json(
+      {
+        items: result.items,
+        error: "plans_unavailable",
+      },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({ items: result.items });
 }

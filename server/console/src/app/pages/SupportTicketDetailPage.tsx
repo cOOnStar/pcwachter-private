@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Paperclip, Send } from "lucide-react";
 import {
   getSupportTicket,
+  getSupportAdminSettings,
   replySupportTicket,
   uploadSupportAttachment,
 } from "../services/api-service";
@@ -33,12 +34,17 @@ export default function SupportTicketDetailPage() {
   const [replyBody, setReplyBody] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<{ id: string; filename: string; size: number }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["support-ticket", ticketId],
     queryFn: () => getSupportTicket(ticketId!),
     enabled: !!ticketId,
+  });
+  const { data: supportSettings } = useQuery({
+    queryKey: ["support-admin-settings"],
+    queryFn: getSupportAdminSettings,
   });
 
   const err = error as (Error & { status?: number }) | null;
@@ -47,8 +53,12 @@ export default function SupportTicketDetailPage() {
     if (!replyBody.trim() || !ticketId) return;
     setSending(true);
     try {
-      await replySupportTicket(ticketId, replyBody.trim());
+      await replySupportTicket(ticketId, {
+        body: replyBody.trim(),
+        attachment_ids: pendingAttachments.map((attachment) => attachment.id),
+      });
       setReplyBody("");
+      setPendingAttachments([]);
       toast({ title: "Antwort gesendet", variant: "success" });
       queryClient.invalidateQueries({ queryKey: ["support-ticket", ticketId] });
     } catch (e: unknown) {
@@ -63,9 +73,9 @@ export default function SupportTicketDetailPage() {
     if (!file) return;
     setUploading(true);
     try {
-      await uploadSupportAttachment(file);
-      toast({ title: "Datei hochgeladen", variant: "success" });
-      queryClient.invalidateQueries({ queryKey: ["support-ticket", ticketId] });
+      const attachment = await uploadSupportAttachment(file);
+      setPendingAttachments((current) => [...current, { id: attachment.id, filename: attachment.filename, size: attachment.size }]);
+      toast({ title: "Datei bereit", variant: "success" });
     } catch (e: unknown) {
       toast({ title: "Upload fehlgeschlagen", description: String(e), variant: "destructive" });
     } finally {
@@ -196,6 +206,35 @@ export default function SupportTicketDetailPage() {
                 value={replyBody}
                 onChange={(e) => setReplyBody(e.target.value)}
               />
+              {pendingAttachments.length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {pendingAttachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                        <span className="text-[var(--text-primary)]">{attachment.filename}</span>
+                        <span className="text-xs text-[var(--text-muted)]">
+                          ({(attachment.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-xs text-[var(--text-muted)] hover:text-[var(--danger)]"
+                        onClick={() =>
+                          setPendingAttachments((current) =>
+                            current.filter((entry) => entry.id !== attachment.id)
+                          )
+                        }
+                      >
+                        Entfernen
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-3 mt-3">
                 <Button
                   size="sm"
@@ -216,12 +255,17 @@ export default function SupportTicketDetailPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  disabled={uploading || supportSettings?.uploads_enabled === false}
                 >
                   <Paperclip className="w-3.5 h-3.5" />
-                  {uploading ? "Lädt hoch…" : "Anhang"}
+                  {uploading ? "Lädt hoch…" : supportSettings?.uploads_enabled === false ? "Upload deaktiviert" : "Anhang"}
                 </Button>
               </div>
+              {supportSettings?.uploads_enabled !== false && typeof supportSettings?.uploads_max_bytes === "number" && (
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Maximale Dateigroesse: {(supportSettings.uploads_max_bytes / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              )}
             </CardContent>
           </Card>
         </>

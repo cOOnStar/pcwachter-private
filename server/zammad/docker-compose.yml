@@ -96,7 +96,7 @@ services:
   # Zammad Init (Schema + Seeds – läuft einmal durch)
   # -------------------------
   zammad-init:
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-init
     restart: on-failure
     command: ["zammad-init"]
@@ -125,7 +125,7 @@ services:
   # Zammad Railsserver (API + Web)
   # -------------------------
   zammad-railsserver:
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-railsserver
     restart: unless-stopped
     command: ["zammad-railsserver"]
@@ -160,7 +160,7 @@ services:
   # Zammad Scheduler (Background Jobs)
   # -------------------------
   zammad-scheduler:
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-scheduler
     restart: unless-stopped
     command: ["zammad-scheduler"]
@@ -191,7 +191,7 @@ services:
   # Zammad Websocket
   # -------------------------
   zammad-websocket:
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-websocket
     restart: unless-stopped
     command: ["zammad-websocket"]
@@ -220,7 +220,7 @@ services:
   # Zammad Nginx (Frontend / Reverse Proxy intern)
   # -------------------------
   zammad-nginx:
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-nginx
     restart: unless-stopped
     command: ["zammad-nginx"]

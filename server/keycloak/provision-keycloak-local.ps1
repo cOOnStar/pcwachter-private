@@ -417,6 +417,34 @@ $homeClientConfig = @{
 }
 $homeClientId = Upsert-Client -Realm $realm -ClientId "home" -ClientConfig $homeClientConfig
 
+$zammadClientConfig = @{
+  clientId                  = "zammad"
+  name                      = "PCWaechter_Support"
+  description               = "Zammad_native_OpenID_Connect_login"
+  enabled                   = $true
+  publicClient              = $true
+  standardFlowEnabled       = $true
+  implicitFlowEnabled       = $false
+  directAccessGrantsEnabled = $false
+  serviceAccountsEnabled    = $false
+  protocol                  = "openid-connect"
+  redirectUris              = @(
+    "http://localhost:3001/auth/openid_connect/callback",
+    "https://support.xn--pcwchter-2za.de/auth/openid_connect/callback"
+  )
+  webOrigins                = @(
+    "http://localhost:3001",
+    "https://support.xn--pcwchter-2za.de"
+  )
+  attributes                = @{
+    "pkce.code.challenge.method"         = "S256"
+    "post.logout.redirect.uris"          = "http://localhost:3001/*##https://support.xn--pcwchter-2za.de/*"
+    "backchannel.logout.session.required" = "true"
+    "backchannel.logout.url"             = "http://localhost:3001/auth/openid_connect/backchannel_logout"
+  }
+}
+$zammadClientId = Upsert-Client -Realm $realm -ClientId "zammad" -ClientConfig $zammadClientConfig
+
 $desktopClientConfig = @{
   clientId                  = "pcwaechter-desktop"
   name                      = "PCWaechter_Desktop_Client"
@@ -471,6 +499,7 @@ $result = [pscustomobject]@{
   clientIds = [pscustomobject]@{
     console = $consoleClientId
     home = $homeClientId
+    zammad = $zammadClientId
     desktop = $desktopClientId
   }
   bootstrapPasswords = [pscustomobject]@{

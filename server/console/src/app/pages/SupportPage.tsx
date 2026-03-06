@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { HeadphonesIcon, AlertTriangle, Info, Terminal } from "lucide-react";
 import {
+  getSupportAdminSettings,
   listSupportTickets,
   diagZammadRoles,
   diagZammadUser,
   type SupportTicket,
+  type SupportAdminSettings,
+  updateSupportAdminSettings,
 } from "../services/api-service";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +19,7 @@ import PageHeader from "../components/shared/PageHeader";
 import EmptyState from "../components/shared/EmptyState";
 import { useAuth } from "../context/auth-context";
 import { formatRelative } from "@/lib/utils";
+import { toast } from "@/components/ui/use-toast";
 
 const PAGE_SIZE = 50;
 
@@ -226,6 +230,277 @@ function DiagPanel() {
   );
 }
 
+function SupportSettingsCard({ canEdit }: { canEdit: boolean }) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["support-admin-settings"],
+    queryFn: getSupportAdminSettings,
+  });
+  const [form, setForm] = useState<SupportAdminSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (data) setForm(data);
+  }, [data]);
+
+  if (isLoading && !form) {
+    return (
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Support-Einstellungen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-[var(--text-muted)]">Lädt…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!form) return null;
+
+  async function handleSave() {
+    const currentForm = form;
+    if (!currentForm) return;
+    setSaving(true);
+    try {
+      const next = await updateSupportAdminSettings({
+        allow_customer_group_selection: currentForm.allow_customer_group_selection,
+        customer_visible_group_ids: currentForm.customer_visible_group_ids,
+        default_group_id: currentForm.default_group_id,
+        default_priority_id: currentForm.default_priority_id,
+        uploads_enabled: currentForm.uploads_enabled,
+        uploads_max_bytes: currentForm.uploads_max_bytes,
+        maintenance_mode: currentForm.maintenance_mode,
+        maintenance_message: currentForm.maintenance_message,
+      });
+      setForm(next);
+      toast({ title: "Support-Einstellungen gespeichert", variant: "success" });
+      refetch();
+    } catch (error: unknown) {
+      toast({ title: "Speichern fehlgeschlagen", description: String(error), variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="mb-4">
+      <CardHeader>
+        <CardTitle>Support-Einstellungen</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1">Zammad</p>
+            <p className="text-sm text-[var(--text-primary)]">
+              {form.zammad_configured ? (form.zammad_reachable ? "Verbunden" : "Konfiguriert, aber nicht erreichbar") : "Nicht konfiguriert"}
+            </p>
+            {form.zammad_error && (
+              <p className="mt-2 text-xs text-[var(--danger)]">{form.zammad_error}</p>
+            )}
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1">Dateispeicher</p>
+            <p className="text-sm text-[var(--text-primary)] break-all">{form.storage_root}</p>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+            <p className="text-xs uppercase tracking-wider text-[var(--text-muted)] mb-1">Identity-Sync</p>
+            <p className="text-sm text-[var(--text-primary)]">{form.identity_sync_mode}</p>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Zammad-User werden ueber die Keycloak-User-ID verknuepft.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <label className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Kunde darf Kategorie waehlen</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                Kategorien werden als echte Zammad-Gruppen angeboten.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={form.allow_customer_group_selection}
+              disabled={!canEdit}
+              onChange={(event) =>
+                setForm((current) =>
+                  current ? { ...current, allow_customer_group_selection: event.target.checked } : current
+                )
+              }
+            />
+          </label>
+
+          <label className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Dateiupload aktiv</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                Gilt fuer Home und Console.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={form.uploads_enabled}
+              disabled={!canEdit}
+              onChange={(event) =>
+                setForm((current) => (current ? { ...current, uploads_enabled: event.target.checked } : current))
+              }
+            />
+          </label>
+
+          <label className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Wartungsmodus</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                Blockiert neue Kundenanfragen und zeigt eine Meldung im Home-Portal.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={form.maintenance_mode}
+              disabled={!canEdit}
+              onChange={(event) =>
+                setForm((current) => (current ? { ...current, maintenance_mode: event.target.checked } : current))
+              }
+            />
+          </label>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4">
+            <p className="text-sm font-medium text-[var(--text-primary)] mb-2">Upload-Limit</p>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              disabled={!canEdit}
+              value={Math.max(1, Math.round(form.uploads_max_bytes / (1024 * 1024)))}
+              onChange={(event) =>
+                setForm((current) =>
+                  current
+                    ? {
+                        ...current,
+                        uploads_max_bytes: Math.max(1, Number(event.target.value || 1)) * 1024 * 1024,
+                      }
+                    : current
+                )
+              }
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+            />
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Hartes Limit durch Env: {Math.round(form.uploads_max_bytes_ceiling / (1024 * 1024))} MB
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)] mb-2">Standard-Gruppe</p>
+            <select
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+              value={form.default_group_id ?? ""}
+              disabled={!canEdit}
+              onChange={(event) =>
+                setForm((current) =>
+                  current
+                    ? { ...current, default_group_id: event.target.value ? Number(event.target.value) : null }
+                    : current
+                )
+              }
+            >
+              <option value="">Bitte waehlen</option>
+              {form.groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)] mb-2">Standard-Prioritaet</p>
+            <select
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+              value={form.default_priority_id ?? ""}
+              disabled={!canEdit}
+              onChange={(event) =>
+                setForm((current) =>
+                  current
+                    ? { ...current, default_priority_id: event.target.value ? Number(event.target.value) : null }
+                    : current
+                )
+              }
+            >
+              <option value="">Bitte waehlen</option>
+              {form.priorities.map((priority) => (
+                <option key={priority.id} value={priority.id}>
+                  {priority.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-[var(--text-primary)] mb-2">Kunden-Kategorien (sichtbare Gruppen)</p>
+          {form.groups.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">Keine Zammad-Gruppen geladen.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+              {form.groups.map((group) => (
+                <label
+                  key={group.id}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 flex items-center gap-3 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.customer_visible_group_ids.includes(group.id)}
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      setForm((current) => {
+                        if (!current) return current;
+                        const next = event.target.checked
+                          ? [...current.customer_visible_group_ids, group.id]
+                          : current.customer_visible_group_ids.filter((id) => id !== group.id);
+                        return {
+                          ...current,
+                          customer_visible_group_ids: [...new Set(next)].sort((a, b) => a - b),
+                        };
+                      })
+                    }
+                  />
+                  <span className="text-[var(--text-primary)]">{group.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-[var(--text-primary)] mb-2">Wartungsmeldung</p>
+          <textarea
+            className="w-full min-h-[88px] rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-3 py-2 text-sm"
+            disabled={!canEdit}
+            value={form.maintenance_message ?? ""}
+            onChange={(event) =>
+              setForm((current) => (current ? { ...current, maintenance_message: event.target.value } : current))
+            }
+          />
+        </div>
+
+        {canEdit ? (
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Speichert…" : "Einstellungen speichern"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-xs text-[var(--text-muted)]">
+            Nur Admins duerfen diese Werte aendern.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -332,6 +607,7 @@ export default function SupportPage() {
       )}
 
       {isAdmin() && showDiag && <DiagPanel />}
+      <SupportSettingsCard canEdit={isAdmin()} />
 
       <Card>
         <CardHeader>

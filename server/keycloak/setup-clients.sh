@@ -27,6 +27,8 @@ REALM="${KEYCLOAK_REALM:-pcwaechter-prod}"
 ADMIN_USER="${KEYCLOAK_ADMIN_USER:-admin}"
 ADMIN_PASS="${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD must be set}"
 HOME_SECRET="${HOME_CLIENT_SECRET:-$(openssl rand -hex 32)}"
+ZAMMAD_PUBLIC_URL="${ZAMMAD_PUBLIC_URL:-https://support.xn--pcwchter-2za.de}"
+ZAMMAD_PUBLIC_URL="${ZAMMAD_PUBLIC_URL%/}"
 
 ADMIN_API="${KEYCLOAK_URL}/admin/realms/${REALM}"
 
@@ -166,7 +168,42 @@ EOF
 echo ""
 
 # =============================================================================
-# Client 3: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
+# Client 3: zammad (public, PKCE, für native Zammad-Anmeldung via Keycloak)
+# =============================================================================
+upsert_client "$TOKEN" "$(cat <<EOF
+{
+  "clientId": "zammad",
+  "name": "PCWächter Support",
+  "description": "Zammad Login via Keycloak OpenID Connect",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "http://localhost:3001/auth/openid_connect/callback",
+    "${ZAMMAD_PUBLIC_URL}/auth/openid_connect/callback"
+  ],
+  "webOrigins": [
+    "http://localhost:3001",
+    "${ZAMMAD_PUBLIC_URL}"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://localhost:3001/*##${ZAMMAD_PUBLIC_URL}/*",
+    "backchannel.logout.session.required": "true",
+    "backchannel.logout.url": "${ZAMMAD_PUBLIC_URL}/auth/openid_connect/backchannel_logout"
+  },
+  "protocol": "openid-connect"
+}
+EOF
+)"
+
+echo ""
+
+# =============================================================================
+# Client 4: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
 # =============================================================================
 upsert_client "$TOKEN" "$(cat <<EOF
 {

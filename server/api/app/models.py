@@ -306,6 +306,88 @@ class Notification(Base):
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
 
+class SupportPortalSettings(Base):
+    __tablename__ = "support_portal_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    allow_customer_group_selection: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    customer_visible_group_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    default_group_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    default_priority_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    uploads_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    uploads_max_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=5 * 1024 * 1024, server_default="5242880")
+    maintenance_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    maintenance_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class SupportIdentityLink(Base):
+    __tablename__ = "support_identity_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    zammad_user_id: Mapped[int] = mapped_column(Integer, nullable=False, unique=True, index=True)
+    last_synced_email: Mapped[str | None] = mapped_column(String(254), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class SupportAttachment(Base):
+    __tablename__ = "support_attachments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), nullable=False, default="application/octet-stream")
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_path: Mapped[str] = mapped_column(Text, nullable=False)
+    zammad_ticket_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    zammad_article_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SupportTicketSyncState(Base):
+    __tablename__ = "support_ticket_sync_states"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    zammad_ticket_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    ticket_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ticket_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_state: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_ticket_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_public_agent_article_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_public_agent_article_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_contact_agent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_contact_customer_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("keycloak_user_id", "zammad_ticket_id", name="uq_support_ticket_sync_user_ticket"),
+    )
+
+
 class RulesCatalog(Base):
     """Rule-based intelligence: defines conditions + recommendations per category."""
 

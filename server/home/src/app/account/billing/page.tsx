@@ -161,21 +161,45 @@ export default function BillingPage() {
   const [showPlans, setShowPlans] = useState(false);
   const [plans, setPlans] = useState<PlanItem[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
     if (!showPlans) return;
     setPlansLoading(true);
+    setPlansError("");
     fetch("/api/plans")
-      .then((r) => (r.ok ? r.json() : { items: [] }))
-      .then((d) => {
-        const sorted = ((d.items ?? []) as PlanItem[])
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({})) as {
+          items?: PlanItem[];
+          error?: string;
+        };
+
+        if (!response.ok) {
+          throw new Error(
+            payload.error === "plans_unavailable"
+              ? "Plaene konnten gerade nicht geladen werden."
+              : "Plaene konnten gerade nicht geladen werden."
+          );
+        }
+
+        return payload;
+      })
+      .then((payload) => {
+        const sorted = ((payload.items ?? []) as PlanItem[])
           .filter((p) => p.is_active)
           .sort((a, b) => a.sort_order - b.sort_order);
         setPlans(sorted);
       })
-      .catch(() => setPlans([]))
+      .catch((error: unknown) => {
+        setPlans([]);
+        setPlansError(
+          error instanceof Error && error.message
+            ? error.message
+            : "Plaene konnten gerade nicht geladen werden."
+        );
+      })
       .finally(() => setPlansLoading(false));
   }, [showPlans]);
 
@@ -355,9 +379,25 @@ export default function BillingPage() {
             </div>
           )}
 
+          {plansError && (
+            <div
+              style={{
+                background: "#450a0a",
+                border: "1px solid #b91c1c",
+                borderRadius: "0.75rem",
+                padding: "0.875rem 1.25rem",
+                color: "#fca5a5",
+                fontSize: "0.875rem",
+                marginBottom: "1rem",
+              }}
+            >
+              {plansError}
+            </div>
+          )}
+
           {!plansLoading && (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {plans.length === 0 && (
+              {plans.length === 0 && !plansError && (
                 <div
                   style={{
                     background: "var(--surface)",

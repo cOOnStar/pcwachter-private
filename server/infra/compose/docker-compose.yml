@@ -152,6 +152,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://console.xn--pcwchter-2za.de,https://home.xn--pcwchter-2za.de}
       ZAMMAD_BASE_URL: ${ZAMMAD_BASE_URL:-}
       ZAMMAD_API_TOKEN: ${ZAMMAD_API_TOKEN:-}
+      ZAMMAD_WEBHOOK_SECRET: ${ZAMMAD_WEBHOOK_SECRET:-}
       SUPPORT_ATTACHMENT_MAX_BYTES: ${SUPPORT_ATTACHMENT_MAX_BYTES:-5242880}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
@@ -312,7 +313,7 @@ services:
 
   zammad-init:
     profiles: [zammad]
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-init
     restart: on-failure
     command: ["zammad-init"]
@@ -341,7 +342,7 @@ services:
 
   zammad-railsserver:
     profiles: [zammad]
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-railsserver
     restart: unless-stopped
     command: ["zammad-railsserver"]
@@ -366,6 +367,7 @@ services:
         condition: service_healthy
     networks:
       - zammad-internal
+      - pcw-internal
     logging:
       driver: json-file
       options:
@@ -374,7 +376,7 @@ services:
 
   zammad-scheduler:
     profiles: [zammad]
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-scheduler
     restart: unless-stopped
     command: ["zammad-scheduler"]
@@ -393,6 +395,7 @@ services:
         condition: service_completed_successfully
     networks:
       - zammad-internal
+      - pcw-internal
     logging:
       driver: json-file
       options:
@@ -401,7 +404,7 @@ services:
 
   zammad-websocket:
     profiles: [zammad]
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad-websocket
     restart: unless-stopped
     command: ["zammad-websocket"]
@@ -423,7 +426,7 @@ services:
 
   zammad-nginx:
     profiles: [zammad]
-    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:6.4.1-20}
+    image: ${ZAMMAD_IMAGE:-ghcr.io/zammad/zammad:7.0.0}
     container_name: pcw-zammad
     restart: unless-stopped
     command: ["zammad-nginx"]

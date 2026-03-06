@@ -30,6 +30,7 @@ def list_notifications(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     unread_only: bool = Query(default=False),
+    type_prefix: str | None = Query(default=None, min_length=1, max_length=64),
     db: Session = Depends(get_db),
     user: dict = Depends(require_home_user),
 ):
@@ -37,6 +38,8 @@ def list_notifications(
     conditions = [Notification.user_id == user_id]
     if unread_only:
         conditions.append(Notification.read_at.is_(None))
+    if type_prefix:
+        conditions.append(Notification.type.like(f"{type_prefix}%"))
 
     total = db.execute(
         select(func.count()).select_from(Notification).where(*conditions)
@@ -97,16 +100,20 @@ def mark_notification_read(
 
 @router.post("/read-all")
 def mark_all_notifications_read(
+    type_prefix: str | None = Query(default=None, min_length=1, max_length=64),
     db: Session = Depends(get_db),
     user: dict = Depends(require_home_user),
 ):
     user_id = _require_user_sub(user)
     now = _utcnow()
-    result = db.execute(
+    statement = (
         update(Notification)
         .where(Notification.user_id == user_id, Notification.read_at.is_(None))
         .values(read_at=now)
     )
+    if type_prefix:
+        statement = statement.where(Notification.type.like(f"{type_prefix}%"))
+    result = db.execute(statement)
     db.commit()
     updated = int(result.rowcount or 0)
     return {"ok": True, "updated": updated}
