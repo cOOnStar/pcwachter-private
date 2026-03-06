@@ -1,0 +1,185 @@
+{
+  "pages": [
+    {
+      "step": "login",
+      "url": "http://localhost:18083/realms/pcwaechter-prod/protocol/openid-connect/auth?client_id=home-web&redirect_uri=http%3A%2F%2Flocalhost%3A13001%2Fauth%2Fcallback&state=d2ed541a-c304-4dbe-ae34-2658a704e6bd&response_mode=fragment&response_type=code&scope=openid&nonce=567b941b-0182-4e5a-9df4-17695018d97b&code_challenge=LEuALdKCGouHw1z6jQIxHNUGHmLkEapzyKnMiMFW-yQ&code_challenge_method=S256",
+      "title": "Anmeldung bei PCWÃ¤chter"
+    },
+    {
+      "step": "dashboard",
+      "url": "http://localhost:13001/dashboard",
+      "title": "web-Kundenportal",
+      "h1": "Dashboard"
+    },
+    {
+      "step": "devices",
+      "url": "http://localhost:13001/devices",
+      "title": "web-Kundenportal",
+      "h1": "Meine Geräte"
+    },
+    {
+      "step": "licenses",
+      "url": "http://localhost:13001/licenses",
+      "title": "web-Kundenportal",
+      "h1": "Lizenzverwaltung"
+    },
+    {
+      "step": "support",
+      "url": "http://localhost:13001/support",
+      "title": "web-Kundenportal",
+      "h1": "Support"
+    },
+    {
+      "step": "profile",
+      "url": "http://localhost:13001/profile",
+      "title": "web-Kundenportal",
+      "h1": "Benutzerprofil"
+    }
+  ],
+  "consoleMessages": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/bootstrap",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/bootstrap",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/bootstrap",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/bootstrap",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "location": {
+        "url": "http://localhost:18080/api/v1/home/bootstrap",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    }
+  ],
+  "pageErrors": [],
+  "failedRequests": [
+    {
+      "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/bootstrap",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/bootstrap",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/bootstrap",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/bootstrap",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/downloads/latest-release",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "http://localhost:18080/api/v1/home/bootstrap",
+      "method": "GET",
+      "status": 401
+    }
+  ],
+  "timestamp": "2026-03-06T16:47:42.413Z"
+}

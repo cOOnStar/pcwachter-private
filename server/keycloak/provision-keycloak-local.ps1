@@ -142,6 +142,56 @@ function Upsert-Client {
   }
 }
 
+function Ensure-ProtocolMapper {
+  param(
+    [string]$Realm,
+    [string]$ClientInternalId,
+    [string]$MapperName,
+    [hashtable]$MapperConfig
+  )
+
+  if ([string]::IsNullOrWhiteSpace($ClientInternalId)) {
+    return
+  }
+
+  $raw = Invoke-Kcadm @("get", "clients/$ClientInternalId/protocol-mappers/models", "-r", $Realm)
+  $items = @($raw | ConvertFrom-Json)
+  $existing = $items | Where-Object { $_.name -eq $MapperName } | Select-Object -First 1
+  if ($existing) {
+    return
+  }
+
+  $payload = $MapperConfig | ConvertTo-Json -Depth 20
+  $hostTmp = [System.IO.Path]::GetTempFileName()
+  $containerTmp = "/tmp/mapper-$MapperName.json"
+  $outFile = [System.IO.Path]::GetTempFileName()
+  $errFile = [System.IO.Path]::GetTempFileName()
+
+  try {
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($hostTmp, $payload, $utf8NoBom)
+
+    $cp = Start-Process `
+      -FilePath "docker" `
+      -ArgumentList @("cp", $hostTmp, "pcwaechter-keycloak:$containerTmp") `
+      -NoNewWindow `
+      -PassThru `
+      -Wait `
+      -RedirectStandardOutput $outFile `
+      -RedirectStandardError $errFile
+
+    if ($cp.ExitCode -ne 0) {
+      $cpErr = (Get-Content -Raw $outFile) + "`n" + (Get-Content -Raw $errFile)
+      throw "docker cp failed for mapper $MapperName`n$cpErr"
+    }
+
+    Invoke-Kcadm @("create", "clients/$ClientInternalId/protocol-mappers/models", "-r", $Realm, "-f", $containerTmp) | Out-Null
+  }
+  finally {
+    Remove-Item -Force -ErrorAction SilentlyContinue $hostTmp, $outFile, $errFile
+  }
+}
+
 function Set-UserProfileConfig {
   param([string]$Realm)
 
@@ -386,11 +436,22 @@ $consoleClientConfig = @{
   }
 }
 $consoleClientId = Upsert-Client -Realm $realm -ClientId "console" -ClientConfig $consoleClientConfig
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $consoleClientId -MapperName "pcwaechter-api-audience" -MapperConfig @{
+  name            = "pcwaechter-api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "pcwaechter-api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
 
 $homeClientConfig = @{
   clientId                  = "home"
   name                      = "PCWaechter_Home_Portal"
-  description               = "Next.js_home_portal"
+  description               = "Legacy_Next.js_home_portal"
   enabled                   = $true
   publicClient              = $false
   standardFlowEnabled       = $true
@@ -416,6 +477,47 @@ $homeClientConfig = @{
   }
 }
 $homeClientId = Upsert-Client -Realm $realm -ClientId "home" -ClientConfig $homeClientConfig
+
+$homeWebClientConfig = @{
+  clientId                  = "home-web"
+  name                      = "PCWaechter_Home_Portal_Web"
+  description               = "React_Vite_home_portal"
+  enabled                   = $true
+  publicClient              = $true
+  standardFlowEnabled       = $true
+  implicitFlowEnabled       = $false
+  directAccessGrantsEnabled = $false
+  serviceAccountsEnabled    = $false
+  protocol                  = "openid-connect"
+  redirectUris              = @(
+    "https://home.xn--pcwchter-2za.de/*",
+    "http://localhost:13001/*",
+    "http://localhost:3000/*",
+    "http://localhost:5173/*"
+  )
+  webOrigins                = @(
+    "https://home.xn--pcwchter-2za.de",
+    "http://localhost:13001",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  )
+  attributes                = @{
+    "pkce.code.challenge.method" = "S256"
+    "post.logout.redirect.uris" = "https://home.xn--pcwchter-2za.de/*##http://localhost:13001/*##http://localhost:3000/*##http://localhost:5173/*"
+  }
+}
+$homeWebClientId = Upsert-Client -Realm $realm -ClientId "home-web" -ClientConfig $homeWebClientConfig
+Ensure-ProtocolMapper -Realm $realm -ClientInternalId $homeWebClientId -MapperName "pcwaechter-api-audience" -MapperConfig @{
+  name            = "pcwaechter-api-audience"
+  protocol        = "openid-connect"
+  protocolMapper  = "oidc-audience-mapper"
+  consentRequired = $false
+  config          = @{
+    "included.custom.audience" = "pcwaechter-api"
+    "access.token.claim"       = "true"
+    "id.token.claim"           = "false"
+  }
+}
 
 $zammadClientConfig = @{
   clientId                  = "zammad"
@@ -499,6 +601,7 @@ $result = [pscustomobject]@{
   clientIds = [pscustomobject]@{
     console = $consoleClientId
     home = $homeClientId
+    home_web = $homeWebClientId
     zammad = $zammadClientId
     desktop = $desktopClientId
   }

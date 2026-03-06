@@ -1,36 +1,28 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json* .npmrc* ./
+RUN npm install
 
 FROM node:22-alpine AS build
 WORKDIR /app
+ARG VITE_API_BASE_URL=https://api.xn--pcwchter-2za.de/api/v1
+ARG VITE_KEYCLOAK_URL=https://login.xn--pcwchter-2za.de
+ARG VITE_KEYCLOAK_REALM=pcwaechter-prod
+ARG VITE_KEYCLOAK_CLIENT_ID=home-web
+ARG VITE_PREVIEW_MODE=false
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
+    VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
+    VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID \
+    VITE_PREVIEW_MODE=$VITE_PREVIEW_MODE
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Public env vars baked into the Next.js build
-ARG NEXT_PUBLIC_API_URL=https://api.xn--pcwchter-2za.de
-ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-
 RUN npm run build
 
-# Standalone output (requires output: 'standalone' in next.config.ts)
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=build --chown=nextjs:nodejs /app/public ./public
-
-USER nextjs
+RUN npm install -g serve@14.2.4
+COPY --from=build /app/dist ./dist
 EXPOSE 3000
-ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
-
-CMD ["node", "server.js"]
+CMD ["serve", "-s", "dist", "-l", "3000"]

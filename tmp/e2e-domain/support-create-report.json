@@ -1,0 +1,12 @@
+{
+  "startedAt": "2026-03-06T17:19:03.951Z",
+  "target": "https://home.pcwächter.de/support",
+  "createdTicketStatus": null,
+  "createdTicketBody": null,
+  "bootstrapAfterCreate": null,
+  "finalUrl": null,
+  "visibleSnippet": null,
+  "consoleErrors": [],
+  "runError": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Neues Ticket erstellen' })\u001b[22m\n\n    at [stdin]:59:72",
+  "finishedAt": "2026-03-06T17:19:39.862Z"
+}

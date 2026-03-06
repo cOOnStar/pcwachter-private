@@ -1,377 +1,190 @@
-const API_URL =
-  process.env.API_INTERNAL_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  "https://api.xn--pcwchter-2za.de";
+import { IS_PREVIEW, createKeycloakInstance, getKeycloak } from './keycloak';
+import type { GitHubRelease, PortalBootstrap } from '../types';
 
-function apiBases(): string[] {
-  const candidates = [
-    process.env.API_INTERNAL_URL,
-    process.env.NEXT_PUBLIC_API_URL,
-    "https://api.xn--pcwchter-2za.de",
-  ]
-    .map((value) => value?.trim())
-    .filter((value): value is string => Boolean(value));
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:18080/api/v1').replace(/\/+$/, '');
 
-  return [...new Set(candidates)];
-}
+type JsonBody = Record<string, unknown> | unknown[] | null;
 
-export interface PlanItem {
-  id: string;
-  label: string;
-  price_eur: number | null;
-  duration_days: number | null;
-  max_devices: number | null;
-  is_active: boolean;
-  sort_order: number;
-  feature_flags: Record<string, boolean> | null;
-  grace_period_days: number;
-  stripe_price_id: string | null;
-  amount_cents: number | null;
-  currency: string;
-  price_version: number;
-  stripe_product_id: string | null;
-}
-
-export async function getPlans(): Promise<PlanItem[]> {
-  return (await getPlansResult()).items;
-}
-
-export async function getPlansResult(): Promise<{
-  items: PlanItem[];
-  error: string | null;
-}> {
-  let lastError: string | null = null;
-
-  for (const base of apiBases()) {
-    try {
-      const res = await fetch(`${base}/console/public/plans`, {
-        next: { revalidate: 300 },
-      });
-      if (!res.ok) {
-        lastError = `plans_fetch_failed_${res.status}`;
-        continue;
-      }
-
-      const data = await res.json();
-      return { items: (data.items ?? []) as PlanItem[], error: null };
-    } catch {
-      lastError = "plans_fetch_failed";
-    }
+async function getAccessToken(): Promise<string> {
+  if (IS_PREVIEW) {
+    return '';
   }
 
-  return { items: [], error: lastError };
-}
+  const existing = getKeycloak();
+  const keycloak = existing || (await createKeycloakInstance());
+  if (!keycloak || !keycloak.authenticated || !keycloak.token) {
+    throw new Error('not_authenticated');
+  }
 
-export interface HomeDevice {
-  device_install_id: string;
-  host_name: string | null;
-  os_name: string | null;
-  os_version: string | null;
-  last_seen_at: string | null;
-  online: boolean;
-  primary_ip: string | null;
-}
-
-export async function getDevices(accessToken: string): Promise<HomeDevice[]> {
   try {
-    const res = await fetch(`${API_URL}/console/home/devices`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.items ?? []) as HomeDevice[];
+    await keycloak.updateToken(30);
   } catch {
-    return [];
+    throw new Error('token_refresh_failed');
   }
+
+  if (!keycloak.token) {
+    throw new Error('missing_access_token');
+  }
+  return keycloak.token as string;
 }
 
-export async function renameDevice(
-  accessToken: string,
-  deviceInstallId: string,
-  name: string
-): Promise<{ ok: boolean }> {
-  const res = await fetch(
-    `${API_URL}/console/home/devices/${encodeURIComponent(deviceInstallId)}/name`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name }),
+async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  options: { auth?: boolean } = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  const wantsJson = init.body && !(init.body instanceof FormData);
+  if (wantsJson && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (options.auth !== false) {
+    const token = await getAccessToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
     }
-  );
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${text || res.statusText}`);
   }
-  return res.json();
-}
 
-export async function revokeDevice(
-  accessToken: string,
-  deviceInstallId: string
-): Promise<{ ok: boolean }> {
-  const res = await fetch(
-    `${API_URL}/console/home/devices/${encodeURIComponent(deviceInstallId)}`,
-    {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    let detail = `request_failed_${response.status}`;
+    try {
+      const payload = await response.json();
+      if (typeof payload?.detail === 'string') {
+        detail = payload.detail;
+      }
+    } catch {
+      // ignore JSON parse failures for error responses
     }
-  );
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${text || res.statusText}`);
+    throw new Error(detail);
   }
-  return res.json();
+
+  if (response.status === 204) {
+    return null as T;
+  }
+  return response.json() as Promise<T>;
 }
 
-export interface SupportTicketIn {
-  title: string;
-  body: string;
+export function fetchPortalBootstrap(): Promise<PortalBootstrap> {
+  return apiRequest<PortalBootstrap>('/home/bootstrap');
 }
 
-export async function createSupportTicket(
-  accessToken: string,
-  payload: SupportTicketIn
-): Promise<{ id?: number | string }> {
-  const res = await fetch(`${API_URL}/support/tickets`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
+export function fetchLatestRelease(): Promise<GitHubRelease | null> {
+  return apiRequest<GitHubRelease | null>('/home/downloads/latest-release');
+}
+
+export function updateHomeProfile(payload: JsonBody): Promise<PortalBootstrap> {
+  return apiRequest<PortalBootstrap>('/home/profile', {
+    method: 'PATCH',
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${text || res.statusText}`);
-  }
-  return res.json();
 }
 
-export async function getLicenseStatus(
-  accessToken: string
-): Promise<LicenseStatus | null> {
-  try {
-    const res = await fetch(`${API_URL}/license/status`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as LicenseStatus;
-  } catch {
-    return null;
-  }
+export function requestAccountDelete(confirmation: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/home/account/delete-request', {
+    method: 'POST',
+    body: JSON.stringify({ confirmation }),
+  });
 }
 
-export interface LicenseStatus {
-  ok: boolean;
-  plan: string;
-  plan_label: string;
-  state: string;
-  expires_at: string | null;
-  grace_period_until: string | null;
-  days_remaining: number | null;
-  max_devices: number | null;
-  features: Record<string, boolean>;
+export function renameDevice(deviceId: string, name: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/home/devices/${encodeURIComponent(deviceId)}/name`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
 }
 
-export interface AccountProfile {
-  sub: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  name: string | null;
-  email_verified: boolean | null;
-  warnings?: string[];
+export function removeDevice(deviceId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/home/devices/${encodeURIComponent(deviceId)}`, {
+    method: 'DELETE',
+  });
 }
 
-export async function getAccountProfile(
-  accessToken: string
-): Promise<AccountProfile | null> {
-  try {
-    const res = await fetch(`${API_URL}/api/v1/me/profile`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as AccountProfile;
-  } catch {
-    return null;
-  }
+export function assignDeviceLicense(deviceId: string, licenseId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/home/devices/${encodeURIComponent(deviceId)}/license`, {
+    method: 'PUT',
+    body: JSON.stringify({ license_id: licenseId }),
+  });
 }
 
-export interface SupportTicketSummary {
-  id: string;
-  number: string | null;
-  title: string | null;
-  state: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  last_contact_agent_at: string | null;
-  last_contact_customer_at: string | null;
-  article_count: number | null;
+export function markNotificationRead(notificationId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/notifications/${notificationId}/read`, {
+    method: 'PUT',
+  });
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+export function markAllNotificationsRead(): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/notifications/read-all', {
+    method: 'PUT',
+  });
 }
 
-function asString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed || null;
+export function deleteNotification(notificationId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/notifications/${notificationId}`, {
+    method: 'DELETE',
+  });
 }
 
-function asNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
+export function clearNotifications(): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>('/notifications', {
+    method: 'DELETE',
+  });
 }
 
-function normalizeSupportTicket(value: unknown): SupportTicketSummary | null {
-  const record = asRecord(value);
-  const id = record ? asString(record.id) ?? String(record.id ?? "") : "";
-  if (!record || !id) return null;
-
-  return {
-    id,
-    number: asString(record.number),
-    title: asString(record.title),
-    state: asString(record.state),
-    created_at: asString(record.created_at),
-    updated_at: asString(record.updated_at),
-    last_contact_agent_at: asString(record.last_contact_agent_at),
-    last_contact_customer_at: asString(record.last_contact_customer_at),
-    article_count: asNumber(record.article_count),
-  };
+export function uploadSupportAttachment(file: File): Promise<{ id: string; filename?: string; size?: number; mime_type?: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiRequest<{ id: string; filename?: string; size?: number; mime_type?: string }>('/support/attachments', {
+    method: 'POST',
+    body: formData,
+  });
 }
 
-export function normalizeSupportTickets(payload: unknown): SupportTicketSummary[] {
-  if (Array.isArray(payload)) {
-    return payload
-      .map(normalizeSupportTicket)
-      .filter((ticket): ticket is SupportTicketSummary => ticket !== null);
-  }
-
-  const record = asRecord(payload);
-  if (!record) return [];
-
-  if (Array.isArray(record.tickets) && record.tickets.every((ticket) => asRecord(ticket))) {
-    return record.tickets
-      .map(normalizeSupportTicket)
-      .filter((ticket): ticket is SupportTicketSummary => ticket !== null);
-  }
-
-  const assets = asRecord(record.assets);
-  const assetTickets = assets ? asRecord(assets.Ticket) : null;
-  if (!assetTickets) return [];
-
-  const recordIds = Array.isArray(record.record_ids)
-    ? record.record_ids
-    : Array.isArray(record.tickets)
-      ? record.tickets
-      : null;
-
-  if (recordIds) {
-    return recordIds
-      .map((id) => {
-        const key = typeof id === "string" ? id : String(id);
-        return normalizeSupportTicket(assetTickets[key]);
-      })
-      .filter((ticket): ticket is SupportTicketSummary => ticket !== null);
-  }
-
-  return Object.values(assetTickets)
-    .map(normalizeSupportTicket)
-    .filter((ticket): ticket is SupportTicketSummary => ticket !== null);
+export function createSupportTicket(payload: JsonBody): Promise<{ id: number }> {
+  return apiRequest<{ id: number }>('/support/tickets', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-export async function getSupportTickets(
-  accessToken: string
-): Promise<SupportTicketSummary[]> {
-  try {
-    const res = await fetch(`${API_URL}/api/v1/support/tickets?per_page=50`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return normalizeSupportTickets(data);
-  } catch {
-    return [];
-  }
+export function replySupportTicket(ticketId: number, payload: JsonBody): Promise<{ id: number }> {
+  return apiRequest<{ id: number }>(`/support/tickets/${ticketId}/reply`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-export interface HomeNotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  meta: Record<string, unknown> | null;
-  created_at: string | null;
-  read_at: string | null;
+export function closeSupportTicket(ticketId: number): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/support/tickets/${ticketId}/close`, {
+    method: 'PUT',
+  });
 }
 
-function normalizeNotification(value: unknown): HomeNotificationItem | null {
-  const record = asRecord(value);
-  const id = record ? asString(record.id) ?? String(record.id ?? "") : "";
-  if (!record || !id) return null;
-
-  const meta = asRecord(record.meta);
-  return {
-    id,
-    type: asString(record.type) ?? "notification",
-    title: asString(record.title) ?? "Benachrichtigung",
-    body: asString(record.body) ?? "",
-    meta,
-    created_at: asString(record.created_at),
-    read_at: asString(record.read_at),
-  };
+export function rateSupportTicket(ticketId: number, rating: number, comment?: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/support/tickets/${ticketId}/rating`, {
+    method: 'POST',
+    body: JSON.stringify({ rating, comment }),
+  });
 }
 
-export async function getHomeNotifications(
-  accessToken: string,
-  options?: {
-    limit?: number;
-    unreadOnly?: boolean;
-    typePrefix?: string;
-  }
-): Promise<{ items: HomeNotificationItem[]; total: number }> {
-  try {
-    const params = new URLSearchParams();
-    params.set("limit", String(options?.limit ?? 20));
-    if (options?.unreadOnly) {
-      params.set("unread_only", "true");
-    }
-    if (options?.typePrefix) {
-      params.set("type_prefix", options.typePrefix);
-    }
+export function createCheckoutSession(planId: string, successUrl: string, cancelUrl: string): Promise<{ checkout_url: string }> {
+  return apiRequest<{ checkout_url: string }>('/payments/create-checkout', {
+    method: 'POST',
+    body: JSON.stringify({
+      plan_id: planId,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    }),
+  });
+}
 
-    const res = await fetch(`${API_URL}/api/v1/notifications?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      return { items: [], total: 0 };
-    }
-
-    const data = await res.json();
-    const record = asRecord(data);
-    const items = Array.isArray(record?.items)
-      ? record.items
-          .map(normalizeNotification)
-          .filter((item): item is HomeNotificationItem => item !== null)
-      : [];
-    const total = asNumber(record?.total) ?? items.length;
-    return { items, total };
-  } catch {
-    return { items: [], total: 0 };
-  }
+export function requestLicenseRenewal(licenseId: string): Promise<{ ok: boolean }> {
+  return apiRequest<{ ok: boolean }>(`/home/licenses/${encodeURIComponent(licenseId)}/renew-request`, {
+    method: 'POST',
+  });
 }

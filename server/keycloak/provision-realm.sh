@@ -348,7 +348,40 @@ HOME_UUID=$(get_client_uuid "home")
 add_audience_mapper "${HOME_UUID}"
 add_roles_mapper    "${HOME_UUID}"
 
-# â”€â”€ 7b. Client: zammad (public, PKCE, native OIDC login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 7b. Client: home-web (public, PKCE, React/Vite SPA) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+log "Creating client: home-web ..."
+upsert_client "home-web" '{
+  "clientId": "home-web",
+  "name": "PCWÃ¤chter Home Portal Web",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "protocol": "openid-connect",
+  "redirectUris": [
+    "https://home.xn--pcwchter-2za.de/*",
+    "http://localhost:13001/*",
+    "http://localhost:3000/*",
+    "http://localhost:5173/*"
+  ],
+  "webOrigins": [
+    "https://home.xn--pcwchter-2za.de",
+    "http://localhost:13001",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "https://home.xn--pcwchter-2za.de/*##http://localhost:13001/*##http://localhost:3000/*##http://localhost:5173/*"
+  }
+}'
+HOME_WEB_UUID=$(get_client_uuid "home-web")
+add_audience_mapper "${HOME_WEB_UUID}"
+add_roles_mapper    "${HOME_WEB_UUID}"
+
+# â”€â”€ 7c. Client: zammad (public, PKCE, native OIDC login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: zammad ..."
 upsert_client "zammad" '{
   "clientId": "zammad",
@@ -376,7 +409,7 @@ upsert_client "zammad" '{
   }
 }'
 
-# â”€â”€ 7c. Client: pcwaechter-console (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 7d. Client: pcwaechter-console (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-console ..."
 upsert_client "pcwaechter-console" '{
   "clientId": "pcwaechter-console",
@@ -409,7 +442,7 @@ PCW_CONSOLE_UUID=$(get_client_uuid "pcwaechter-console")
 add_audience_mapper "${PCW_CONSOLE_UUID}"
 add_roles_mapper    "${PCW_CONSOLE_UUID}"
 
-# â”€â”€ 7d. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ 7e. Client: pcwaechter-home (canonical) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "Creating client: pcwaechter-home ..."
 upsert_client "pcwaechter-home" "{
   \"clientId\": \"pcwaechter-home\",

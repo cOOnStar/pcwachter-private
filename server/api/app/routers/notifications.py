@@ -70,6 +70,7 @@ def list_notifications(
 
 
 @router.post("/{notification_id}/read")
+@router.put("/{notification_id}/read")
 def mark_notification_read(
     notification_id: str,
     db: Session = Depends(get_db),
@@ -99,6 +100,7 @@ def mark_notification_read(
 
 
 @router.post("/read-all")
+@router.put("/read-all")
 def mark_all_notifications_read(
     type_prefix: str | None = Query(default=None, min_length=1, max_length=64),
     db: Session = Depends(get_db),
@@ -117,3 +119,45 @@ def mark_all_notifications_read(
     db.commit()
     updated = int(result.rowcount or 0)
     return {"ok": True, "updated": updated}
+
+
+@router.delete("/{notification_id}")
+def delete_notification(
+    notification_id: str,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_home_user),
+):
+    user_id = _require_user_sub(user)
+    try:
+        notification_uuid = uuid.UUID(notification_id.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="notification_not_found") from exc
+
+    row = db.execute(
+        select(Notification).where(
+            Notification.id == notification_uuid,
+            Notification.user_id == user_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="notification_not_found")
+
+    db.delete(row)
+    db.commit()
+    return {"ok": True, "id": notification_id}
+
+
+@router.delete("")
+def delete_all_notifications(
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_home_user),
+):
+    user_id = _require_user_sub(user)
+    rows = db.execute(
+        select(Notification).where(Notification.user_id == user_id)
+    ).scalars().all()
+    deleted = len(rows)
+    for row in rows:
+        db.delete(row)
+    db.commit()
+    return {"ok": True, "deleted": deleted}

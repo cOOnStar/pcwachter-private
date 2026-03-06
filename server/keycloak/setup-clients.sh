@@ -16,7 +16,7 @@
 #   export KEYCLOAK_ADMIN_PASSWORD=...
 #   bash setup-clients.sh
 #
-# Optional (generiert Secret für "home" Client automatisch):
+# Optional (generiert Secret für den Legacy-Client "home" automatisch):
 #   export HOME_CLIENT_SECRET=$(openssl rand -hex 32)
 # =============================================================================
 
@@ -83,6 +83,45 @@ upsert_client() {
   fi
 }
 
+get_client_uuid() {
+  local token="$1"
+  local client_id="$2"
+  curl -sf \
+    "${ADMIN_API}/clients?clientId=${client_id}" \
+    -H "Authorization: Bearer ${token}" \
+    | jq -r '.[0].id // empty'
+}
+
+ensure_client_mapper() {
+  local token="$1"
+  local client_uuid="$2"
+  local mapper_name="$3"
+  local mapper_json="$4"
+
+  if [ -z "$client_uuid" ]; then
+    return
+  fi
+
+  local existing_uuid
+  existing_uuid=$(curl -sf \
+    "${ADMIN_API}/clients/${client_uuid}/protocol-mappers/models" \
+    -H "Authorization: Bearer ${token}" \
+    | jq -r --arg name "${mapper_name}" '.[] | select(.name == $name) | .id' \
+    | head -1)
+
+  if [ -n "${existing_uuid}" ]; then
+    echo "  ~ Mapper ${mapper_name} bereits vorhanden"
+    return
+  fi
+
+  curl -sf -X POST \
+    "${ADMIN_API}/clients/${client_uuid}/protocol-mappers/models" \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    -d "${mapper_json}" >/dev/null
+  echo "  ✓ Mapper ${mapper_name} hinzugefügt"
+}
+
 # ── Token holen ───────────────────────────────────────────────────────────────
 echo "Hole Admin-Token..."
 TOKEN=$(get_token)
@@ -127,17 +166,32 @@ upsert_client "$TOKEN" "$(cat <<EOF
 }
 EOF
 )"
+CONSOLE_UUID=$(get_client_uuid "$TOKEN" "console")
+ensure_client_mapper "$TOKEN" "$CONSOLE_UUID" "pcwaechter-api-audience" "$(cat <<EOF
+{
+  "name": "pcwaechter-api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "pcwaechter-api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
 
 echo ""
 
 # =============================================================================
-# Client 2: home (confidential, für Next.js Home Portal via next-auth)
+# Client 2: home (confidential, Legacy-Client für altes Next.js Home Portal)
 # =============================================================================
 upsert_client "$TOKEN" "$(cat <<EOF
 {
   "clientId": "home",
   "name": "PCWächter Home Portal",
-  "description": "Next.js Home Portal (next-auth Keycloak Provider)",
+  "description": "Legacy Home Portal (confidential, NextAuth-kompatibel)",
   "enabled": true,
   "publicClient": false,
   "standardFlowEnabled": true,
@@ -168,7 +222,59 @@ EOF
 echo ""
 
 # =============================================================================
-# Client 3: zammad (public, PKCE, für native Zammad-Anmeldung via Keycloak)
+# Client 3: home-web (public, PKCE, für React/Vite Home Portal)
+# =============================================================================
+upsert_client "$TOKEN" "$(cat <<EOF
+{
+  "clientId": "home-web",
+  "name": "PCWächter Home Portal Web",
+  "description": "React/Vite Home Portal (public PKCE SPA)",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "redirectUris": [
+    "https://home.xn--pcwchter-2za.de/*",
+    "http://localhost:13001/*",
+    "http://localhost:3000/*",
+    "http://localhost:5173/*"
+  ],
+  "webOrigins": [
+    "https://home.xn--pcwchter-2za.de",
+    "http://localhost:13001",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "https://home.xn--pcwchter-2za.de/*##http://localhost:13001/*##http://localhost:3000/*##http://localhost:5173/*"
+  },
+  "protocol": "openid-connect"
+}
+EOF
+)"
+HOME_WEB_UUID=$(get_client_uuid "$TOKEN" "home-web")
+ensure_client_mapper "$TOKEN" "$HOME_WEB_UUID" "pcwaechter-api-audience" "$(cat <<EOF
+{
+  "name": "pcwaechter-api-audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.custom.audience": "pcwaechter-api",
+    "access.token.claim": "true",
+    "id.token.claim": "false"
+  }
+}
+EOF
+)"
+
+echo ""
+
+# =============================================================================
+# Client 4: zammad (public, PKCE, für native Zammad-Anmeldung via Keycloak)
 # =============================================================================
 upsert_client "$TOKEN" "$(cat <<EOF
 {
@@ -203,7 +309,7 @@ EOF
 echo ""
 
 # =============================================================================
-# Client 4: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
+# Client 5: pcwaechter-desktop (public, PKCE, für Windows Desktop Client)
 # =============================================================================
 upsert_client "$TOKEN" "$(cat <<EOF
 {

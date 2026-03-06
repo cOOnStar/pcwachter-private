@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import WebhookEventV2
+from ..models import SupportTicketRating, SupportTicketSyncState, WebhookEventV2
 from ..security_jwt import require_console_owner, require_console_user, require_home_user
 from ..settings import settings
 from ..services.support_service import (
@@ -332,6 +332,7 @@ class TicketAttachmentIn(BaseModel):
 class TicketCreateIn(BaseModel):
     title: str = Field(..., max_length=200)
     body: str = Field(..., max_length=5000)
+    category: str | None = Field(default=None, max_length=128)
     group_id: int | None = None
     attachment_ids: list[uuid.UUID] = Field(default_factory=list)
     attachments: list[TicketAttachmentIn] = Field(default_factory=list)
@@ -343,6 +344,11 @@ class TicketReplyIn(BaseModel):
     internal: bool = False
     attachment_ids: list[uuid.UUID] = Field(default_factory=list)
     attachments: list[TicketAttachmentIn] = Field(default_factory=list)
+
+
+class TicketRatingIn(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=2000)
 
 
 class SupportSettingsUpdateIn(BaseModel):
@@ -379,6 +385,33 @@ def _resolve_ticket_group_id(
     if default_group_id is None:
         raise HTTPException(status_code=503, detail="support_not_configured")
     return default_group_id
+
+
+def _sync_ticket_category(
+    db: Session,
+    *,
+    keycloak_user_id: str,
+    ticket_id: int,
+    category: str | None,
+) -> None:
+    normalized_category = normalize_name(category)
+    if not normalized_category:
+        return
+
+    snapshot = db.execute(
+        select(SupportTicketSyncState).where(
+            SupportTicketSyncState.keycloak_user_id == keycloak_user_id,
+            SupportTicketSyncState.zammad_ticket_id == ticket_id,
+        )
+    ).scalar_one_or_none()
+    if snapshot is None:
+        snapshot = SupportTicketSyncState(
+            keycloak_user_id=keycloak_user_id,
+            zammad_ticket_id=ticket_id,
+        )
+        db.add(snapshot)
+    snapshot.portal_category = normalized_category
+    db.flush()
 
 
 @router.get("/tickets")
@@ -501,6 +534,14 @@ async def create_ticket(
     if stored_rows:
         ticket_id = data.get("id") if isinstance(data, dict) else None
         mark_attachments_consumed(db, stored_rows, zammad_ticket_id=int(ticket_id) if ticket_id else None)
+    if isinstance(data, dict) and data.get("id") is not None:
+        _sync_ticket_category(
+            db,
+            keycloak_user_id=profile.user_id,
+            ticket_id=int(data["id"]),
+            category=payload.category,
+        )
+        db.commit()
     return data
 
 
@@ -608,6 +649,120 @@ async def reply_ticket(
             zammad_article_id=int(article_id) if article_id else None,
         )
     return data
+
+
+@router.put("/tickets/{ticket_id}/close")
+async def close_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_home_user),
+) -> dict[str, Any]:
+    require_zammad_configured()
+    elevated = _is_elevated(_user)
+    profile = await build_support_profile(_user)
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        ticket = await _load_ticket(ticket_id, client)
+        if not elevated:
+            customer_id = await resolve_or_create_zammad_customer_id(
+                db=db,
+                profile=profile,
+                client=client,
+                create_if_missing=False,
+            )
+            if customer_id is None:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+            ticket_customer_id = ticket.get("customer_id")
+            if ticket_customer_id is None or int(ticket_customer_id) != customer_id:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+
+        catalog = await load_zammad_catalog(client)
+        closed_state_id = next(
+            (
+                int(state["id"])
+                for state in catalog.get("states", [])
+                if normalize_name(state.get("name")) and normalize_name(state.get("name")).lower() == "closed"
+            ),
+            None,
+        )
+        if closed_state_id is None:
+            raise HTTPException(status_code=503, detail="support_close_state_missing")
+
+        try:
+            response = await client.put(
+                f"{zammad_base_url()}/api/v1/tickets/{ticket_id}",
+                headers=zammad_headers(),
+                json={"state_id": closed_state_id},
+            )
+        except httpx.RequestError as exc:
+            raise_zammad_unreachable("tickets/close", exc)
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"zammad_error: {response.status_code}")
+    return {"ok": True, "ticket_id": ticket_id, "state": "Geschlossen"}
+
+
+@router.post("/tickets/{ticket_id}/rating")
+async def rate_ticket(
+    ticket_id: int,
+    payload: TicketRatingIn,
+    db: Session = Depends(get_db),
+    _user: dict = Depends(require_home_user),
+) -> dict[str, Any]:
+    require_zammad_configured()
+    elevated = _is_elevated(_user)
+    profile = await build_support_profile(_user)
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        ticket = await _load_ticket(ticket_id, client)
+        if not elevated:
+            customer_id = await resolve_or_create_zammad_customer_id(
+                db=db,
+                profile=profile,
+                client=client,
+                create_if_missing=False,
+            )
+            if customer_id is None:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+            ticket_customer_id = ticket.get("customer_id")
+            if ticket_customer_id is None or int(ticket_customer_id) != customer_id:
+                raise HTTPException(status_code=404, detail="ticket_not_found")
+
+        catalog = await load_zammad_catalog(client)
+        state_name_by_id = _catalog_name_map(catalog.get("states", []))
+        state_name = state_name_by_id.get(int(ticket.get("state_id") or 0), "")
+        if normalize_name(state_name).lower() != "closed":
+            raise HTTPException(status_code=409, detail="ticket_not_closed")
+
+    row = db.execute(
+        select(SupportTicketRating).where(
+            SupportTicketRating.keycloak_user_id == profile.user_id,
+            SupportTicketRating.zammad_ticket_id == ticket_id,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        row = SupportTicketRating(
+            keycloak_user_id=profile.user_id,
+            zammad_ticket_id=ticket_id,
+            rating=payload.rating,
+            comment=normalize_name(payload.comment),
+        )
+        db.add(row)
+    else:
+        row.rating = payload.rating
+        row.comment = normalize_name(payload.comment)
+    db.commit()
+    db.refresh(row)
+
+    return {
+        "ok": True,
+        "ticket_id": ticket_id,
+        "rating": {
+            "rating": int(row.rating),
+            "comment": row.comment,
+            "rated_at": row.created_at.isoformat() if row.created_at else None,
+        },
+    }
 
 
 @router.post("/attachments")

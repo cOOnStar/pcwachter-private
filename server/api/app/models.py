@@ -111,15 +111,19 @@ class License(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     license_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
     tier: Mapped[str] = mapped_column(String(32), nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     duration_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_devices: Mapped[int | None] = mapped_column(Integer, nullable=True)
     state: Mapped[str] = mapped_column(String(24), nullable=False, index=True, default="issued")
 
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    renewal_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     activated_device_install_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     activated_by_user_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    owner_user_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
@@ -159,6 +163,98 @@ class Subscription(Base):
     )
 
     license: Mapped["License | None"] = relationship("License", foreign_keys=[license_id])
+
+
+class HomeUserProfile(Base):
+    __tablename__ = "home_user_profiles"
+
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    preferred_language: Mapped[str] = mapped_column(String(16), nullable=False, default="de", server_default="de")
+    preferred_timezone: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="Europe/Berlin",
+        server_default="Europe/Berlin",
+    )
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+    license_reminders_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+    support_updates_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+    deletion_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deletion_scheduled_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class LicenseDeviceAssignment(Base):
+    __tablename__ = "license_device_assignments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    license_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("licenses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    device_install_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    assigned_by_user_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
+    __table_args__ = (
+        Index("ix_license_device_assignments_active_license", "license_id", "released_at"),
+        Index("ix_license_device_assignments_active_device", "device_install_id", "released_at"),
+    )
+
+
+class LicenseAuditLog(Base):
+    __tablename__ = "license_audit_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    license_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("licenses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    actor_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
+class DeviceHistoryEntry(Base):
+    __tablename__ = "device_history_entries"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_install_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    keycloak_user_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    meta: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
 
 class DeviceToken(Base):
@@ -375,6 +471,7 @@ class SupportTicketSyncState(Base):
     last_public_agent_article_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_contact_agent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_contact_customer_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    portal_category: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -385,6 +482,22 @@ class SupportTicketSyncState(Base):
 
     __table_args__ = (
         UniqueConstraint("keycloak_user_id", "zammad_ticket_id", name="uq_support_ticket_sync_user_ticket"),
+    )
+
+
+class SupportTicketRating(Base):
+    __tablename__ = "support_ticket_ratings"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    keycloak_user_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    zammad_ticket_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("keycloak_user_id", "zammad_ticket_id", name="uq_support_ticket_ratings_user_ticket"),
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_support_ticket_ratings_value"),
     )
 
 

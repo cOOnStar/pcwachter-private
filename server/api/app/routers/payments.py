@@ -30,6 +30,7 @@ from ..schemas import (
 )
 from ..security_jwt import require_home_user
 from ..settings import settings
+from ..services.home_portal_service import license_display_name, record_license_audit
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -254,14 +255,25 @@ def _handle_checkout_completed(db: Session, session: dict) -> None:
     license_row = License(
         license_key=key,
         tier=plan_id,
+        display_name=plan.label,
         duration_days=plan.duration_days,
+        max_devices=plan.max_devices,
         state="activated",
         activated_at=now,
         expires_at=expires_at,
         activated_by_user_id=keycloak_user_id,
+        owner_user_id=keycloak_user_id,
     )
     db.add(license_row)
     db.flush()
+    record_license_audit(
+        db,
+        license_id=license_row.id,
+        action="created",
+        description=f"{license_display_name(license_row, plan)} gekauft",
+        actor_name="System",
+        details={"planId": plan.id, "stripeCustomerId": stripe_customer_id},
+    )
 
     sub = db.execute(
         select(Subscription)

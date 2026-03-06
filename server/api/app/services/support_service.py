@@ -853,7 +853,7 @@ def process_zammad_webhook_event(
                 external_id=f"support:ticket:{ticket_id}:agent-article:{article_id}",
                 meta={
                     "severity": "info",
-                    "href": "/account/support#ticket-history",
+                    "href": "/support",
                     "action_label": "Verlauf oeffnen",
                     "ticket_id": str(ticket_id),
                     "ticket_number": ticket_number,
@@ -884,7 +884,7 @@ def process_zammad_webhook_event(
             external_id=f"support:ticket:{ticket_id}:state:{event_id}",
             meta={
                 "severity": support_state_severity(state),
-                "href": "/account/support#ticket-history",
+                "href": "/support",
                 "action_label": "Ticket ansehen",
                 "ticket_id": str(ticket_id),
                 "ticket_number": ticket_number,

@@ -18,6 +18,7 @@ from .routers.client import router as client_router
 from .routers.commands import router as commands_router
 from .routers.console import router as console_router
 from .routers.features import router as features_router
+from .routers.home_portal import router as home_portal_router
 from .routers.license import router as license_router
 from .routers.me import router as me_router
 from .routers.notifications import router as notifications_router
@@ -220,6 +221,7 @@ _v1.include_router(client_router)
 _v1.include_router(commands_router)
 _v1.include_router(console_router)
 _v1.include_router(features_router)
+_v1.include_router(home_portal_router)
 _v1.include_router(me_router)
 _v1.include_router(telemetry_router)
 _v1.include_router(admin_router)
@@ -240,6 +242,7 @@ app.include_router(client_router)
 app.include_router(commands_router)
 app.include_router(console_router)
 app.include_router(features_router)
+app.include_router(home_portal_router)
 app.include_router(me_router)
 app.include_router(telemetry_router)
 app.include_router(admin_router)

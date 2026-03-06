@@ -9,6 +9,7 @@ from ..models import License, Plan, Subscription
 from ..schemas import LicenseActivateRequest, LicenseActivateResponse, LicenseInfo, LicenseMeResponse, LicenseStatusResponse
 from ..security import require_api_key
 from ..security_jwt import require_verified_token
+from ..services.home_portal_service import assign_license_to_device, ensure_legacy_assignment, lookup_license_by_device
 
 router = APIRouter(prefix="/license", tags=["license"])
 
@@ -88,6 +89,12 @@ def activate_license(payload: LicenseActivateRequest, db: Session = Depends(get_
         raise HTTPException(status_code=409, detail=f"license is {license_row.state}")
 
     activated_now = False
+    plan = db.execute(select(Plan).where(Plan.id == license_row.tier)).scalar_one_or_none()
+    if license_row.max_devices is None and plan and plan.max_devices:
+        license_row.max_devices = int(plan.max_devices)
+    if user_id and not license_row.owner_user_id:
+        license_row.owner_user_id = user_id
+
     if license_row.state == "issued":
         # Trial-already-used check
         if license_row.tier == "trial" and user_id and _user_has_used_trial(db, user_id):
@@ -105,17 +112,31 @@ def activate_license(payload: LicenseActivateRequest, db: Session = Depends(get_
             license_row.expires_at = now + timedelta(days=license_row.duration_days)
             license_row.state = "expired" if license_row.expires_at <= now else "activated"
 
+        if user_id:
+            assign_license_to_device(
+                db,
+                license_row=license_row,
+                device_install_id=device_install_id,
+                keycloak_user_id=user_id,
+                actor_name="System",
+            )
         db.commit()
         db.refresh(license_row)
         activated_now = True
     elif license_row.state == "activated":
-        if license_row.activated_device_install_id and license_row.activated_device_install_id != device_install_id:
-            raise HTTPException(status_code=409, detail="license already activated on another device")
-
-        if not license_row.activated_device_install_id:
+        ensure_legacy_assignment(db, license_row)
+        if user_id:
+            assign_license_to_device(
+                db,
+                license_row=license_row,
+                device_install_id=device_install_id,
+                keycloak_user_id=user_id,
+                actor_name="System",
+            )
+            db.commit()
+            db.refresh(license_row)
+        elif not license_row.activated_device_install_id:
             license_row.activated_device_install_id = device_install_id
-            if user_id and not license_row.activated_by_user_id:
-                license_row.activated_by_user_id = user_id
             db.commit()
             db.refresh(license_row)
 
@@ -143,17 +164,15 @@ def license_me(
         license_row = db.execute(select(License).where(License.license_key == normalized)).scalar_one_or_none()
     else:
         device_id = (device_install_id or "").strip()
-        license_row = db.execute(
-            select(License)
-            .where(License.activated_device_install_id == device_id)
-            .order_by(License.activated_at.desc().nullslast(), License.created_at.desc())
-            .limit(1)
-        ).scalar_one_or_none()
+        license_row = lookup_license_by_device(db, device_id)
 
     if not license_row:
         raise HTTPException(status_code=404, detail="license not found")
 
     if license_row.activated_by_user_id and license_row.activated_by_user_id != bearer_sub:
+        if license_row.owner_user_id and license_row.owner_user_id == bearer_sub:
+            materialize_expiry(db, license_row)
+            return LicenseMeResponse(ok=True, license=to_info(license_row))
         raise HTTPException(status_code=403, detail="license does not belong to this user")
 
     materialize_expiry(db, license_row)
@@ -209,16 +228,12 @@ def license_status(
         license_row = db.execute(select(License).where(License.license_key == normalized)).scalar_one_or_none()
     else:
         device_id = (device_install_id or "").strip()
-        license_row = db.execute(
-            select(License)
-            .where(License.activated_device_install_id == device_id)
-            .order_by(License.activated_at.desc().nullslast(), License.created_at.desc())
-            .limit(1)
-        ).scalar_one_or_none()
+        license_row = lookup_license_by_device(db, device_id)
 
     # When using Bearer auth, verify the license belongs to the authenticated user
-    if bearer_sub and license_row and license_row.activated_by_user_id:
-        if license_row.activated_by_user_id != bearer_sub:
+    if bearer_sub and license_row:
+        owner_id = (license_row.owner_user_id or license_row.activated_by_user_id or "").strip()
+        if owner_id and owner_id != bearer_sub:
             raise HTTPException(status_code=403, detail="license does not belong to this user")
 
     if not license_row:

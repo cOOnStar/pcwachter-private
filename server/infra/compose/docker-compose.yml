@@ -190,10 +190,10 @@ services:
       context: ../../console
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.xn--pcwchter-2za.de/api/v1}
-        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-https://login.xn--pcwchter-2za.de}
-        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-pcwaechter-prod}
-        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID:-console}
+        VITE_API_BASE_URL: ${CONSOLE_VITE_API_BASE_URL:-http://localhost:18080/api/v1}
+        VITE_KEYCLOAK_URL: ${CONSOLE_VITE_KEYCLOAK_URL:-http://localhost:18083}
+        VITE_KEYCLOAK_REALM: ${CONSOLE_VITE_KEYCLOAK_REALM:-pcwaechter-prod}
+        VITE_KEYCLOAK_CLIENT_ID: ${CONSOLE_VITE_KEYCLOAK_CLIENT_ID:-console}
     container_name: pcw-console
     restart: unless-stopped
     networks:
@@ -210,7 +210,8 @@ services:
       retries: 20
 
   # -------------------------
-  # Kundenportal (Next.js)
+  # Kundenportal (React SPA / Vite)
+  # Build args werden beim Image-Build eingebacken.
   # -------------------------
   home:
     image: ${PCW_HOME_IMAGE:-pcw-home:local}
@@ -218,22 +219,13 @@ services:
       context: ../../home
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+        VITE_API_BASE_URL: ${HOME_VITE_API_BASE_URL:-http://localhost:18080/api/v1}
+        VITE_KEYCLOAK_URL: ${HOME_VITE_KEYCLOAK_URL:-http://localhost:18083}
+        VITE_KEYCLOAK_REALM: ${HOME_VITE_KEYCLOAK_REALM:-pcwaechter-prod}
+        VITE_KEYCLOAK_CLIENT_ID: ${HOME_VITE_KEYCLOAK_CLIENT_ID:-home-web}
+        VITE_PREVIEW_MODE: ${HOME_VITE_PREVIEW_MODE:-false}
     container_name: pcw-home
     restart: unless-stopped
-    environment:
-      AUTH_KEYCLOAK_ID: ${AUTH_KEYCLOAK_ID:-home}
-      AUTH_KEYCLOAK_SECRET: ${AUTH_KEYCLOAK_SECRET:-}
-      AUTH_KEYCLOAK_ISSUER: ${AUTH_KEYCLOAK_ISSUER:-http://localhost:8080/realms/pcwaechter-prod}
-      AUTH_URL: ${AUTH_URL:-http://localhost:13001}
-      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
-      AUTH_SECRET: ${AUTH_SECRET}
-      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     networks:
       - pcw-internal
     depends_on:

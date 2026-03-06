@@ -184,13 +184,16 @@ def _require_console_roles(
     token = _extract_bearer_token(authorization)
 
     # 1. Verify signature + aud locally (fast, no network round-trip on cache hit)
-    _verify_token(token)
+    claims = _verify_token(token)
 
     # 2. Fetch userinfo for authoritative role info
     userinfo = _fetch_userinfo(token)
 
-    # 3. Check roles
-    roles = _extract_roles(userinfo)
+    # 3. Check roles. Userinfo is useful for fresh profile data, but it often
+    # does not include realm/client roles unless dedicated mappers are enabled.
+    # Fall back to the already verified access-token claims so authenticated
+    # home/console sessions are not rejected incorrectly.
+    roles = _extract_roles(claims) | _extract_roles(userinfo)
     if not roles.intersection(required_roles):
         raise HTTPException(status_code=403, detail=error_message)
 
