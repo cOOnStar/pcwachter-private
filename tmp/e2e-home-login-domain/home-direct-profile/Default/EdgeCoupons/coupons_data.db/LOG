@@ -1,0 +1,6 @@
+2026/03/07-01:06:35.834 1354 Reusing MANIFEST C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\home-direct-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/03/07-01:06:35.842 1354 Recovering log #4
+2026/03/07-01:06:35.843 1354 Reusing old log C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\home-direct-profile\Default\EdgeCoupons/coupons_data.db/000004.log 
+2026/03/07-01:06:35.915 87d0 Level-0 table #8: started
+2026/03/07-01:06:35.922 87d0 Level-0 table #8: 681700 bytes OK
+2026/03/07-01:06:35.927 87d0 Delete type=0 #4

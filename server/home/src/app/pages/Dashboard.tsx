@@ -154,26 +154,7 @@ export function Dashboard() {
     },
   ];
 
-  const recentActivity = (data?.recentActivity ?? [
-    {
-      type: "license",
-      title: "Calvin-PC aktiviert",
-      description: "Lizenz Professional – Gerät hinzugefügt",
-      timestamp: "2026-03-06T10:00:00",
-    },
-    {
-      type: "ticket",
-      title: "Support-Antwort erhalten",
-      description: "Ticket #3 – Performance-Probleme nach Update",
-      timestamp: "2026-03-02T16:30:00",
-    },
-    {
-      type: "update",
-      title: "Neue Version verfügbar",
-      description: "PC-Wächter v2.6.0 steht zum Download bereit",
-      timestamp: "2026-03-04T10:00:00",
-    },
-  ]).map((activity) => ({
+  const recentActivity = portal.recentActivity.map((activity) => ({
     ...activity,
     icon:
       activity.type === "license"

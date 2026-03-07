@@ -1,0 +1,12 @@
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"MaybeOrchestrateMigration: MaybeOrchestrateMigration","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.806Z"}}
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"Migrate_FeatureCheck: Migrate_FeatureCheck","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.806Z"}}
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"Migrate_MaybeHavePrefs: Migrate_MaybeHavePrefs","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.807Z"}}
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"Migrate_Schedule: Migrate_Schedule","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.807Z"}}
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"Migrate_Schedule: Migration not enabled or profile in AAD carve-out, but otherwise Eligible","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.807Z"}}
+{"logTime": "0307/000214", {"lineNo":0,"logLevel":2,"message":"MaybeOrchestrateMigration: ~MaybeOrchestrateMigration","source":"Workspace Migration","timestamp":"2026-03-07T00:02:14.807Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"MaybeOrchestrateMigration: MaybeOrchestrateMigration","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.791Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"Migrate_FeatureCheck: Migrate_FeatureCheck","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.791Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"Migrate_MaybeHavePrefs: Migrate_MaybeHavePrefs","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.792Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"Migrate_Schedule: Migrate_Schedule","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.792Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"Migrate_Schedule: Migration not enabled or profile in AAD carve-out, but otherwise Eligible","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.792Z"}}
+{"logTime": "0307/000635", {"lineNo":0,"logLevel":2,"message":"MaybeOrchestrateMigration: ~MaybeOrchestrateMigration","source":"Workspace Migration","timestamp":"2026-03-07T00:06:35.792Z"}}

@@ -1,0 +1,5 @@
+2026/03/07-01:02:14.839 9698 Creating DB C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\home-direct-profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/03/07-01:02:14.856 9698 Reusing MANIFEST C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\home-direct-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/03/07-01:02:15.147 6fb8 Level-0 table #5: started
+2026/03/07-01:02:15.168 6fb8 Level-0 table #5: 681597 bytes OK
+2026/03/07-01:02:15.171 6fb8 Delete type=0 #3

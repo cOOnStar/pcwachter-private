@@ -5,7 +5,7 @@ import { fetchPortalBootstrap } from '../lib/api';
 import { IS_PREVIEW } from '../lib/keycloak';
 import type { PortalBootstrap } from '../types';
 
-export const PREVIEW_BOOTSTRAP: PortalBootstrap = {
+const PREVIEW_PORTAL_BOOTSTRAP: PortalBootstrap = {
   ...mockData,
   recentActivity: [
     {
@@ -78,10 +78,60 @@ export const PREVIEW_BOOTSTRAP: PortalBootstrap = {
   ],
 };
 
+const EMPTY_PORTAL_BOOTSTRAP: PortalBootstrap = {
+  licenses: [],
+  devices: [],
+  supportTickets: [],
+  notifications: [],
+  stats: {
+    totalLicenses: 0,
+    activeLicenses: 0,
+    expiringLicenses: 0,
+    openTickets: 0,
+  },
+  systemStatus: [],
+  user: {
+    id: '',
+    email: '',
+  },
+  documentation: [],
+  documentationCategories: [],
+  popularArticles: [],
+  licenseAuditLog: [],
+  ticketTemplates: [],
+  recentActivity: [],
+  profileSettings: {
+    phone: null,
+    preferredLanguage: 'de',
+    preferredTimezone: 'Europe/Berlin',
+    emailNotificationsEnabled: true,
+    licenseRemindersEnabled: true,
+    supportUpdatesEnabled: true,
+    deletionRequestedAt: null,
+    deletionScheduledFor: null,
+  },
+  supportConfig: {
+    allow_customer_group_selection: false,
+    customer_visible_group_ids: [],
+    default_group_id: null,
+    default_priority_id: null,
+    uploads_enabled: false,
+    uploads_max_bytes: 0,
+    maintenance_mode: false,
+    maintenance_message: '',
+    groups: [],
+    support_available: false,
+    zammad_reachable: true,
+  },
+  plans: [],
+};
+
+export const PREVIEW_BOOTSTRAP = IS_PREVIEW ? PREVIEW_PORTAL_BOOTSTRAP : EMPTY_PORTAL_BOOTSTRAP;
+
 export function usePortalBootstrap() {
   return useQuery<PortalBootstrap>({
     queryKey: ['portal-bootstrap'],
-    queryFn: () => (IS_PREVIEW ? Promise.resolve(PREVIEW_BOOTSTRAP) : fetchPortalBootstrap()),
-    placeholderData: PREVIEW_BOOTSTRAP,
+    queryFn: () => (IS_PREVIEW ? Promise.resolve(PREVIEW_PORTAL_BOOTSTRAP) : fetchPortalBootstrap()),
+    placeholderData: IS_PREVIEW ? PREVIEW_PORTAL_BOOTSTRAP : undefined,
   });
 }

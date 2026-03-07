@@ -1,0 +1,775 @@
+{
+  "startedAt": "2026-03-07T00:06:21.177Z",
+  "config": {
+    "realm": "pcwaechter-prod",
+    "user": "e2e.home.login@pcwaechter.local"
+  },
+  "scenarios": [
+    {
+      "name": "home-direct",
+      "startUrl": "https://home.xn--pcwchter-2za.de",
+      "loginUrl": "https://login.xn--pcwchter-2za.de/realms/pcwaechter-prod/protocol/openid-connect/auth?client_id=home-web&redirect_uri=https%3A%2F%2Fhome.xn--pcwchter-2za.de%2Fauth%2Fcallback&state=96cda860-a43f-41e9-91f0-2983cf4db1d7&response_mode=fragment&response_type=code&scope=openid&nonce=6d6d56f4-b07c-4427-89e1-757f6e2a9c3f&code_challenge=W8wSf-KNo4fM1UMAbSW_S_Ap4utHnZ7btchR_C7cImA&code_challenge_method=S256",
+      "finalUrl": "https://home.xn--pcwchter-2za.de/dashboard",
+      "title": "web-Kundenportal",
+      "expectedClientId": "home-web",
+      "usedHomeClient": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "apiCalls": [
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/downloads/latest-release",
+          "status": 200
+        },
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/bootstrap",
+          "status": 200
+        }
+      ],
+      "bootstrapStatus": 200,
+      "bootstrapJson": {
+        "user": {
+          "id": "c33669e1-18d2-48ba-b890-33d5795367e3",
+          "username": "e2e.home.login@pcwaechter.local",
+          "email": "e2e.home.login@pcwaechter.local",
+          "firstName": "E2E",
+          "lastName": "Home Login",
+          "emailVerified": true
+        },
+        "licenses": [],
+        "devices": [],
+        "supportTickets": [],
+        "notifications": [],
+        "stats": {
+          "totalLicenses": 0,
+          "activeLicenses": 0,
+          "expiringLicenses": 0,
+          "openTickets": 0
+        },
+        "systemStatus": [
+          {
+            "name": "API-Server",
+            "status": "operational",
+            "description": "Alle Systeme funktionieren normal"
+          },
+          {
+            "name": "Lizenz-Server",
+            "status": "operational",
+            "description": "Lizenz- und Abo-Daten sind verfuegbar"
+          },
+          {
+            "name": "Support-System",
+            "status": "operational",
+            "description": "Support ist erreichbar"
+          }
+        ],
+        "documentation": [
+          {
+            "id": 1,
+            "name": "Administratorhandbuch",
+            "version": "7.2",
+            "size": "12 MB",
+            "format": "PDF",
+            "language": "Deutsch",
+            "type": "manual"
+          },
+          {
+            "id": 2,
+            "name": "Schnellstart-Anleitung",
+            "version": "7.2",
+            "size": "2 MB",
+            "format": "PDF",
+            "language": "Deutsch",
+            "type": "guide"
+          },
+          {
+            "id": 3,
+            "name": "API-Dokumentation",
+            "version": "7.2",
+            "size": "5 MB",
+            "format": "PDF",
+            "language": "Englisch",
+            "type": "technical"
+          }
+        ],
+        "documentationCategories": [
+          {
+            "title": "Erste Schritte",
+            "icon": "BookOpen",
+            "color": "text-blue-600",
+            "bgColor": "bg-blue-50",
+            "articles": [
+              {
+                "title": "Installation und Einrichtung",
+                "views": "1.2k"
+              },
+              {
+                "title": "Grundlegende Konfiguration",
+                "views": "980"
+              },
+              {
+                "title": "Erste Schritte mit der Management Console",
+                "views": "850"
+              }
+            ]
+          },
+          {
+            "title": "Video-Tutorials",
+            "icon": "Video",
+            "color": "text-purple-600",
+            "bgColor": "bg-purple-50",
+            "articles": [
+              {
+                "title": "PC-Waechter Pro Ueberblick (15:30)",
+                "views": "2.1k"
+              },
+              {
+                "title": "Benutzer und Rechte verwalten (8:45)",
+                "views": "1.5k"
+              },
+              {
+                "title": "Remote-Zugriff einrichten (12:20)",
+                "views": "1.3k"
+              }
+            ]
+          },
+          {
+            "title": "FAQ",
+            "icon": "FileQuestion",
+            "color": "text-green-600",
+            "bgColor": "bg-green-50",
+            "articles": [
+              {
+                "title": "Haeufig gestellte Fragen zur Lizenzierung",
+                "views": "3.2k"
+              },
+              {
+                "title": "Problembehandlung bei der Installation",
+                "views": "2.8k"
+              },
+              {
+                "title": "Kompatibilitaet mit anderen Softwareloesungen",
+                "views": "1.9k"
+              }
+            ]
+          }
+        ],
+        "popularArticles": [
+          {
+            "title": "Wie aktiviere ich meine Lizenz?",
+            "category": "Lizenzierung",
+            "views": "5.4k",
+            "rating": 4.8
+          },
+          {
+            "title": "PC-Waechter auf mehreren Rechnern installieren",
+            "category": "Installation",
+            "views": "4.2k",
+            "rating": 4.6
+          },
+          {
+            "title": "Sicherheitseinstellungen optimal konfigurieren",
+            "category": "Konfiguration",
+            "views": "3.8k",
+            "rating": 4.9
+          }
+        ],
+        "licenseAuditLog": [],
+        "ticketTemplates": [
+          {
+            "id": "template-installation",
+            "name": "Installationsproblem",
+            "category": "Installation",
+            "description": "Hilfe bei der Installation von PC-Waechter",
+            "fields": [
+              {
+                "label": "Betriebssystem",
+                "type": "select",
+                "options": [
+                  "Windows 10",
+                  "Windows 11",
+                  "Windows Server 2019",
+                  "Windows Server 2022"
+                ],
+                "required": true
+              },
+              {
+                "label": "Fehlermeldung",
+                "type": "textarea",
+                "placeholder": "Bitte beschreiben Sie die genaue Fehlermeldung...",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "template-license",
+            "name": "Lizenzierung",
+            "category": "Lizenzierung",
+            "description": "Fragen zur Lizenzaktivierung oder -verwaltung",
+            "fields": [
+              {
+                "label": "Lizenzschluessel",
+                "type": "text",
+                "placeholder": "XXXX-XXXX-XXXX",
+                "required": true
+              },
+              {
+                "label": "Problem-Beschreibung",
+                "type": "textarea",
+                "placeholder": "Beschreiben Sie Ihr Lizenzproblem...",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "recentActivity": [],
+        "profileSettings": {
+          "phone": null,
+          "preferredLanguage": "de",
+          "preferredTimezone": "Europe/Berlin",
+          "emailNotificationsEnabled": true,
+          "licenseRemindersEnabled": true,
+          "supportUpdatesEnabled": true,
+          "deletionRequestedAt": null,
+          "deletionScheduledFor": null
+        },
+        "supportConfig": {
+          "allow_customer_group_selection": false,
+          "customer_visible_group_ids": [
+            1
+          ],
+          "default_group_id": 1,
+          "default_priority_id": 2,
+          "uploads_enabled": true,
+          "uploads_max_bytes": 5242880,
+          "uploads_max_bytes_ceiling": 5242880,
+          "maintenance_mode": false,
+          "maintenance_message": "Der Supportbereich ist gerade in Wartung. Bitte versuchen Sie es spaeter erneut.",
+          "groups": [
+            {
+              "id": 1,
+              "name": "Users"
+            }
+          ],
+          "support_available": true,
+          "zammad_reachable": true
+        },
+        "plans": [
+          {
+            "id": "trial",
+            "label": "Testversion",
+            "price_eur": 0,
+            "duration_days": 7,
+            "max_devices": 1,
+            "is_active": true,
+            "sort_order": 0,
+            "feature_flags": {
+              "reports": false,
+              "auto_fix": false,
+              "priority_support": false
+            },
+            "grace_period_days": 0,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "standard",
+            "label": "Standard",
+            "price_eur": 4.99,
+            "duration_days": 30,
+            "max_devices": 37,
+            "is_active": true,
+            "sort_order": 1,
+            "feature_flags": {
+              "reports": false,
+              "auto_fix": true,
+              "priority_support": false
+            },
+            "grace_period_days": 7,
+            "stripe_price_id": null,
+            "amount_cents": 59922,
+            "currency": "eur"
+          },
+          {
+            "id": "professional",
+            "label": "Professional",
+            "price_eur": 49.99,
+            "duration_days": 365,
+            "max_devices": 2,
+            "is_active": true,
+            "sort_order": 2,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": true
+            },
+            "grace_period_days": 14,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "unlimited",
+            "label": "Unbegrenzt",
+            "price_eur": null,
+            "duration_days": null,
+            "max_devices": null,
+            "is_active": true,
+            "sort_order": 3,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": true
+            },
+            "grace_period_days": 0,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "custom",
+            "label": "Custom",
+            "price_eur": null,
+            "duration_days": null,
+            "max_devices": null,
+            "is_active": true,
+            "sort_order": 4,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": false
+            },
+            "grace_period_days": 7,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          }
+        ]
+      },
+      "releaseStatus": 200,
+      "releaseJson": {
+        "tag_name": "0.0.76",
+        "name": "0.0.76",
+        "body": "# Release Notes 0.0.76\n\nRelease-Datum: 27.02.2026\nVersion: 0.0.76\n\n## Änderungen seit 0.0.75\n- fix(installer): task xml pfad und welcome text korrigieren [allow-en]\n- fix(installer): uninstall entfernt kompletten installroot [allow-en]\n- fix(release): offline installer alias fuer live bootstrapper hochladen [allow-en]",
+        "published_at": "2026-02-27T16:09:55Z",
+        "html_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/tag/0.0.76",
+        "assets": [
+          {
+            "id": 363575323,
+            "name": "installer-manifest.json",
+            "size": 292,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/installer-manifest.json"
+          },
+          {
+            "id": 363575324,
+            "name": "PCWaechter_live_installer.exe",
+            "size": 175827,
+            "download_count": 2,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_live_installer.exe"
+          },
+          {
+            "id": 363575320,
+            "name": "PCWaechter_offline_installer.exe",
+            "size": 2271588,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_offline_installer.exe"
+          },
+          {
+            "id": 363575322,
+            "name": "PCWaechter_offline_installer_0076.exe",
+            "size": 2271588,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_offline_installer_0076.exe"
+          }
+        ]
+      },
+      "visibleSnippet": "PC-Wächter Kundenportal Dashboard Lizenzen Meine Geräte Support Downloads Dokumentation Version 0.0.76 • © 2026 PC-Wächter Willkommen zurück, E2E! E2E Home Login e2e.home.login@pcwaechter.local Dashboard Hier ist eine Übersicht über Ihre PC-Wächter Installation Aktive Lizenzen 0 0 Lizenzen gesamt Registrierte Geräte 0 0 von 0 Plätzen belegt Läuft bald ab 0 – Offene Tickets 0 Keine neuen Antworten Schnellzugriff Neue Lizenz kaufen Erweitern Sie Ihre PC-Wächter Installation Support kontaktieren Erstellen Sie ein neues Support-Ticket Software herunterladen Laden Sie die neueste Version herunter Letzte Aktivitäten System-Status API-Server Alle Systeme funktionieren normal Lizenz-Server Lizenz- und Abo-Daten sind verfuegbar Support-System Support ist erreichbar"
+    },
+    {
+      "name": "login-domain-direct",
+      "startUrl": "https://login.xn--pcwchter-2za.de",
+      "loginUrl": "https://login.xn--pcwchter-2za.de/realms/pcwaechter-prod/protocol/openid-connect/auth?client_id=home-web&redirect_uri=https%3A%2F%2Fhome.xn--pcwchter-2za.de%2Fauth%2Fcallback&state=861cb766-7694-49a2-8c19-ddf14ddb1950&response_mode=fragment&response_type=code&scope=openid&nonce=28bf1b5c-33e8-4ab2-930c-cadb233b15c6&code_challenge=67wBP0Yq-eVzOuVoDwjpmuWERWD-5g9WTNLEwwgTURI&code_challenge_method=S256",
+      "finalUrl": "https://home.xn--pcwchter-2za.de/dashboard",
+      "title": "web-Kundenportal",
+      "expectedClientId": "home-web",
+      "usedHomeClient": true,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "apiCalls": [
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/downloads/latest-release",
+          "status": 200
+        },
+        {
+          "url": "https://api.xn--pcwchter-2za.de/api/v1/home/bootstrap",
+          "status": 200
+        }
+      ],
+      "bootstrapStatus": 200,
+      "bootstrapJson": {
+        "user": {
+          "id": "c33669e1-18d2-48ba-b890-33d5795367e3",
+          "username": "e2e.home.login@pcwaechter.local",
+          "email": "e2e.home.login@pcwaechter.local",
+          "firstName": "E2E",
+          "lastName": "Home Login",
+          "emailVerified": true
+        },
+        "licenses": [],
+        "devices": [],
+        "supportTickets": [],
+        "notifications": [],
+        "stats": {
+          "totalLicenses": 0,
+          "activeLicenses": 0,
+          "expiringLicenses": 0,
+          "openTickets": 0
+        },
+        "systemStatus": [
+          {
+            "name": "API-Server",
+            "status": "operational",
+            "description": "Alle Systeme funktionieren normal"
+          },
+          {
+            "name": "Lizenz-Server",
+            "status": "operational",
+            "description": "Lizenz- und Abo-Daten sind verfuegbar"
+          },
+          {
+            "name": "Support-System",
+            "status": "operational",
+            "description": "Support ist erreichbar"
+          }
+        ],
+        "documentation": [
+          {
+            "id": 1,
+            "name": "Administratorhandbuch",
+            "version": "7.2",
+            "size": "12 MB",
+            "format": "PDF",
+            "language": "Deutsch",
+            "type": "manual"
+          },
+          {
+            "id": 2,
+            "name": "Schnellstart-Anleitung",
+            "version": "7.2",
+            "size": "2 MB",
+            "format": "PDF",
+            "language": "Deutsch",
+            "type": "guide"
+          },
+          {
+            "id": 3,
+            "name": "API-Dokumentation",
+            "version": "7.2",
+            "size": "5 MB",
+            "format": "PDF",
+            "language": "Englisch",
+            "type": "technical"
+          }
+        ],
+        "documentationCategories": [
+          {
+            "title": "Erste Schritte",
+            "icon": "BookOpen",
+            "color": "text-blue-600",
+            "bgColor": "bg-blue-50",
+            "articles": [
+              {
+                "title": "Installation und Einrichtung",
+                "views": "1.2k"
+              },
+              {
+                "title": "Grundlegende Konfiguration",
+                "views": "980"
+              },
+              {
+                "title": "Erste Schritte mit der Management Console",
+                "views": "850"
+              }
+            ]
+          },
+          {
+            "title": "Video-Tutorials",
+            "icon": "Video",
+            "color": "text-purple-600",
+            "bgColor": "bg-purple-50",
+            "articles": [
+              {
+                "title": "PC-Waechter Pro Ueberblick (15:30)",
+                "views": "2.1k"
+              },
+              {
+                "title": "Benutzer und Rechte verwalten (8:45)",
+                "views": "1.5k"
+              },
+              {
+                "title": "Remote-Zugriff einrichten (12:20)",
+                "views": "1.3k"
+              }
+            ]
+          },
+          {
+            "title": "FAQ",
+            "icon": "FileQuestion",
+            "color": "text-green-600",
+            "bgColor": "bg-green-50",
+            "articles": [
+              {
+                "title": "Haeufig gestellte Fragen zur Lizenzierung",
+                "views": "3.2k"
+              },
+              {
+                "title": "Problembehandlung bei der Installation",
+                "views": "2.8k"
+              },
+              {
+                "title": "Kompatibilitaet mit anderen Softwareloesungen",
+                "views": "1.9k"
+              }
+            ]
+          }
+        ],
+        "popularArticles": [
+          {
+            "title": "Wie aktiviere ich meine Lizenz?",
+            "category": "Lizenzierung",
+            "views": "5.4k",
+            "rating": 4.8
+          },
+          {
+            "title": "PC-Waechter auf mehreren Rechnern installieren",
+            "category": "Installation",
+            "views": "4.2k",
+            "rating": 4.6
+          },
+          {
+            "title": "Sicherheitseinstellungen optimal konfigurieren",
+            "category": "Konfiguration",
+            "views": "3.8k",
+            "rating": 4.9
+          }
+        ],
+        "licenseAuditLog": [],
+        "ticketTemplates": [
+          {
+            "id": "template-installation",
+            "name": "Installationsproblem",
+            "category": "Installation",
+            "description": "Hilfe bei der Installation von PC-Waechter",
+            "fields": [
+              {
+                "label": "Betriebssystem",
+                "type": "select",
+                "options": [
+                  "Windows 10",
+                  "Windows 11",
+                  "Windows Server 2019",
+                  "Windows Server 2022"
+                ],
+                "required": true
+              },
+              {
+                "label": "Fehlermeldung",
+                "type": "textarea",
+                "placeholder": "Bitte beschreiben Sie die genaue Fehlermeldung...",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "template-license",
+            "name": "Lizenzierung",
+            "category": "Lizenzierung",
+            "description": "Fragen zur Lizenzaktivierung oder -verwaltung",
+            "fields": [
+              {
+                "label": "Lizenzschluessel",
+                "type": "text",
+                "placeholder": "XXXX-XXXX-XXXX",
+                "required": true
+              },
+              {
+                "label": "Problem-Beschreibung",
+                "type": "textarea",
+                "placeholder": "Beschreiben Sie Ihr Lizenzproblem...",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "recentActivity": [],
+        "profileSettings": {
+          "phone": null,
+          "preferredLanguage": "de",
+          "preferredTimezone": "Europe/Berlin",
+          "emailNotificationsEnabled": true,
+          "licenseRemindersEnabled": true,
+          "supportUpdatesEnabled": true,
+          "deletionRequestedAt": null,
+          "deletionScheduledFor": null
+        },
+        "supportConfig": {
+          "allow_customer_group_selection": false,
+          "customer_visible_group_ids": [
+            1
+          ],
+          "default_group_id": 1,
+          "default_priority_id": 2,
+          "uploads_enabled": true,
+          "uploads_max_bytes": 5242880,
+          "uploads_max_bytes_ceiling": 5242880,
+          "maintenance_mode": false,
+          "maintenance_message": "Der Supportbereich ist gerade in Wartung. Bitte versuchen Sie es spaeter erneut.",
+          "groups": [
+            {
+              "id": 1,
+              "name": "Users"
+            }
+          ],
+          "support_available": true,
+          "zammad_reachable": true
+        },
+        "plans": [
+          {
+            "id": "trial",
+            "label": "Testversion",
+            "price_eur": 0,
+            "duration_days": 7,
+            "max_devices": 1,
+            "is_active": true,
+            "sort_order": 0,
+            "feature_flags": {
+              "reports": false,
+              "auto_fix": false,
+              "priority_support": false
+            },
+            "grace_period_days": 0,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "standard",
+            "label": "Standard",
+            "price_eur": 4.99,
+            "duration_days": 30,
+            "max_devices": 37,
+            "is_active": true,
+            "sort_order": 1,
+            "feature_flags": {
+              "reports": false,
+              "auto_fix": true,
+              "priority_support": false
+            },
+            "grace_period_days": 7,
+            "stripe_price_id": null,
+            "amount_cents": 59922,
+            "currency": "eur"
+          },
+          {
+            "id": "professional",
+            "label": "Professional",
+            "price_eur": 49.99,
+            "duration_days": 365,
+            "max_devices": 2,
+            "is_active": true,
+            "sort_order": 2,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": true
+            },
+            "grace_period_days": 14,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "unlimited",
+            "label": "Unbegrenzt",
+            "price_eur": null,
+            "duration_days": null,
+            "max_devices": null,
+            "is_active": true,
+            "sort_order": 3,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": true
+            },
+            "grace_period_days": 0,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          },
+          {
+            "id": "custom",
+            "label": "Custom",
+            "price_eur": null,
+            "duration_days": null,
+            "max_devices": null,
+            "is_active": true,
+            "sort_order": 4,
+            "feature_flags": {
+              "reports": true,
+              "auto_fix": true,
+              "priority_support": false
+            },
+            "grace_period_days": 7,
+            "stripe_price_id": null,
+            "amount_cents": null,
+            "currency": "eur"
+          }
+        ]
+      },
+      "releaseStatus": 200,
+      "releaseJson": {
+        "tag_name": "0.0.76",
+        "name": "0.0.76",
+        "body": "# Release Notes 0.0.76\n\nRelease-Datum: 27.02.2026\nVersion: 0.0.76\n\n## Änderungen seit 0.0.75\n- fix(installer): task xml pfad und welcome text korrigieren [allow-en]\n- fix(installer): uninstall entfernt kompletten installroot [allow-en]\n- fix(release): offline installer alias fuer live bootstrapper hochladen [allow-en]",
+        "published_at": "2026-02-27T16:09:55Z",
+        "html_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/tag/0.0.76",
+        "assets": [
+          {
+            "id": 363575323,
+            "name": "installer-manifest.json",
+            "size": 292,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/installer-manifest.json"
+          },
+          {
+            "id": 363575324,
+            "name": "PCWaechter_live_installer.exe",
+            "size": 175827,
+            "download_count": 2,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_live_installer.exe"
+          },
+          {
+            "id": 363575320,
+            "name": "PCWaechter_offline_installer.exe",
+            "size": 2271588,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_offline_installer.exe"
+          },
+          {
+            "id": 363575322,
+            "name": "PCWaechter_offline_installer_0076.exe",
+            "size": 2271588,
+            "download_count": 0,
+            "browser_download_url": "https://github.com/cOOnStar/pcwaechter-public-release/releases/download/0.0.76/PCWaechter_offline_installer_0076.exe"
+          }
+        ]
+      },
+      "visibleSnippet": "PC-Wächter Kundenportal Dashboard Lizenzen Meine Geräte Support Downloads Dokumentation Version 0.0.76 • © 2026 PC-Wächter Willkommen zurück, E2E! E2E Home Login e2e.home.login@pcwaechter.local Dashboard Hier ist eine Übersicht über Ihre PC-Wächter Installation Aktive Lizenzen 0 0 Lizenzen gesamt Registrierte Geräte 0 0 von 0 Plätzen belegt Läuft bald ab 0 – Offene Tickets 0 Keine neuen Antworten Schnellzugriff Neue Lizenz kaufen Erweitern Sie Ihre PC-Wächter Installation Support kontaktieren Erstellen Sie ein neues Support-Ticket Software herunterladen Laden Sie die neueste Version herunter Letzte Aktivitäten System-Status API-Server Alle Systeme funktionieren normal Lizenz-Server Lizenz- und Abo-Daten sind verfuegbar Support-System Support ist erreichbar"
+    }
+  ],
+  "cleanup": "deleted_test_user",
+  "finishedAt": "2026-03-07T00:06:48.151Z"
+}

@@ -1,0 +1,5 @@
+2026/03/07-01:06:42.877 397c Creating DB C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\login-domain-direct-profile\Default\Asset Store\assets.db since it was missing.
+2026/03/07-01:06:42.904 397c Reusing MANIFEST C:\Users\Calvin\Documents\PCWächter\tmp\e2e-home-login-domain\login-domain-direct-profile\Default\Asset Store\assets.db/MANIFEST-000001
+2026/03/07-01:06:44.192 1654 Level-0 table #5: started
+2026/03/07-01:06:44.205 1654 Level-0 table #5: 332820 bytes OK
+2026/03/07-01:06:44.212 1654 Delete type=0 #3
